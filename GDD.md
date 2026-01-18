@@ -20,7 +20,7 @@ An educational and strategic simulation game where players design, build, and te
 
 ### Platform
 - **Primary Platforms**: PC (Windows/Mac/Linux), Web Browser, Mobile (iOS/Android)
-- **Technology Stack**: Unity or WebGL-based (decision based on which platform best supports the art style and aesthetic; could also be a 2D engine if it worked with the style)
+- **Technology Stack**: TypeScript + PixiJS (WebGL-based 2D engine with excellent particle effects support)
 - **Distribution Model**: Free-to-play, open source
 
 ### Core Experience
@@ -473,27 +473,30 @@ These features are planned for future versions:
 
 ### Platform Technology Decision
 
-**DECISION: Unity**
+**DECISION: TypeScript + PixiJS**
 
-After evaluation, Unity has been selected as the game engine for the following reasons:
+After evaluation, a web-based stack using TypeScript and PixiJS has been selected for the following reasons:
 
 **Primary Justification:**
-1. **Particle Systems**: Unity's particle systems (Shuriken & VFX Graph) are industry-leading and perfectly suited for the complex propellant flow and exhaust plume animations that are central to the game's visual identity
-2. **Multi-Platform Support**: Single codebase exports to all target platforms (PC: Windows/Mac/Linux, WebGL for browsers, iOS/Android for mobile)
-3. **Development Efficiency**: Built-in 3D rendering, physics simulation, and animation tools accelerate MVP development
-4. **Open Source Compatibility**: Unity Personal (free tier) supports open source distribution
+1. **100% Code-Based Development**: No IDE or visual editor required—entire game can be built through code, enabling AI-assisted development
+2. **Excellent Particle Systems**: PixiJS provides high-performance WebGL particle effects suitable for propellant flow and exhaust plume animations
+3. **Multi-Platform Support**: Runs natively in any browser; can be wrapped with Electron (desktop) or Capacitor (mobile) for native apps
+4. **Lightweight Builds**: WebGL builds are typically 5-15 MB (vs 50-150 MB for Unity WebGL)
+5. **Open Source Friendly**: All tools are MIT/Apache licensed with no revenue restrictions
 
 **Implementation Details:**
-- **Version**: Unity 2022 LTS or newer
-- **Rendering Pipeline**: Universal Render Pipeline (URP) for multi-platform performance
-- **Particle System**: VFX Graph for high-quality effects on capable hardware, Shuriken for mobile/low-end
-- **WebGL Deployment**: Compressed builds hosted on itch.io or GitHub Pages
-- **License**: Unity Personal (free) - suitable for open source projects under $100k revenue
+- **Language**: TypeScript 5.x for type safety and maintainability
+- **Rendering**: PixiJS 8.x for WebGL-accelerated 2D graphics
+- **Build Tool**: Vite for fast development and optimized production builds
+- **Particle System**: @pixi/particle-emitter for complex effects
+- **Audio**: Howler.js for cross-browser audio support
+- **State Management**: Custom TypeScript classes with event-driven architecture
+- **Deployment**: Static hosting on GitHub Pages, itch.io, or any CDN
 
 **Trade-offs Accepted:**
-- WebGL build sizes (50-150 MB) - acceptable for target audience
-- WebGL performance slightly lower than native - mitigated with quality settings
-- Unity Editor required for development - standard for Unity projects
+- Custom physics implementation required (not a game engine physics system)—acceptable since rocket physics are specialized calculations anyway
+- No visual scene editor—mitigated by clean code architecture and hot reloading
+- Mobile performance requires optimization—handled through quality settings and responsive design
 
 ### Physics Engine
 **Simulation Complexity** (adjustable per difficulty setting):
@@ -526,7 +529,7 @@ After evaluation, Unity has been selected as the game engine for the following r
 - Quick simulation iterations (< 5 seconds for standard test)
 - Scalable particle complexity (3-tier setting)
 - Mobile optimization (touch-friendly UI, performance scaling)
-- Browser optimization (if using Unity WebGL, consider build size)
+- Browser optimization (lightweight PixiJS builds, lazy loading for assets)
 
 ### Settings & Accessibility
 - **Graphics Quality**: 3-tier slider (Low/Medium/High particle detail)
