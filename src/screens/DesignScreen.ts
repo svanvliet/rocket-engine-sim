@@ -511,62 +511,95 @@ export class DesignScreen implements Screen {
     onChange: (value: number) => void
   ): Container {
     const slider = new Container();
-    const height = 20;
+    const trackWidth = width - 50; // Leave room for +/- buttons
     const normalized = (value - min) / (max - min);
 
-    // Track
+    // Track background
     const track = new Graphics();
-    track.roundRect(0, 8, width, 4, 2);
+    track.roundRect(25, 8, trackWidth, 4, 2);
     track.fill({ color: 0x333344 });
     slider.addChild(track);
 
-    // Fill
+    // Filled portion
     const fill = new Graphics();
-    fill.roundRect(0, 8, width * normalized, 4, 2);
+    fill.roundRect(25, 8, trackWidth * normalized, 4, 2);
     fill.fill({ color: 0xff6b35 });
     slider.addChild(fill);
 
     // Handle
     const handle = new Graphics();
-    handle.circle(width * normalized, 10, 8);
+    handle.circle(25 + trackWidth * normalized, 10, 8);
     handle.fill({ color: 0xff6b35 });
     handle.stroke({ color: 0xffffff, width: 2 });
     slider.addChild(handle);
 
+    // Make handle draggable
+    handle.eventMode = 'static';
+    handle.cursor = 'grab';
+    
+    let isDragging = false;
+    
+    const updateFromX = (globalX: number) => {
+      const sliderGlobalX = slider.getGlobalPosition().x;
+      const localX = globalX - sliderGlobalX - 25; // Offset for left button
+      const newNormalized = Math.max(0, Math.min(1, localX / trackWidth));
+      const rawValue = min + newNormalized * (max - min);
+      const steppedValue = Math.round(rawValue / step) * step;
+      const clampedValue = Math.max(min, Math.min(max, steppedValue));
+      onChange(clampedValue);
+    };
+    
+    handle.on('pointerdown', (e) => {
+      isDragging = true;
+      handle.cursor = 'grabbing';
+      e.stopPropagation();
+    });
+    
+    handle.on('globalpointermove', (e) => {
+      if (isDragging) {
+        updateFromX(e.global.x);
+      }
+    });
+    
+    handle.on('pointerup', () => {
+      isDragging = false;
+      handle.cursor = 'grab';
+    });
+    
+    handle.on('pointerupoutside', () => {
+      isDragging = false;
+      handle.cursor = 'grab';
+    });
+
+    // Make track clickable
+    track.eventMode = 'static';
+    track.cursor = 'pointer';
+    track.on('pointerdown', (e) => {
+      updateFromX(e.global.x);
+    });
+
     // Decrease button
-    const decBtn = this.createSmallButton('-', 0, 0);
+    const decBtn = this.createSmallButton('-', 5, 10);
     decBtn.on('pointerdown', () => {
       const newValue = Math.max(min, value - step);
       onChange(newValue);
     });
     slider.addChild(decBtn);
 
-    // Increase button
-    const incBtn = this.createSmallButton('+', width + 5, 0);
+    // Increase button  
+    const incBtn = this.createSmallButton('+', width - 5, 10);
     incBtn.on('pointerdown', () => {
       const newValue = Math.min(max, value + step);
       onChange(newValue);
     });
     slider.addChild(incBtn);
 
-    // Make track clickable
-    track.eventMode = 'static';
-    track.cursor = 'pointer';
-    track.hitArea = { contains: (x: number, y: number) => x >= 0 && x <= width && y >= 0 && y <= height };
-    track.on('pointerdown', (e) => {
-      const localX = e.global.x - slider.getGlobalPosition().x;
-      const newNormalized = Math.max(0, Math.min(1, localX / width));
-      const newValue = min + newNormalized * (max - min);
-      const steppedValue = Math.round(newValue / step) * step;
-      onChange(steppedValue);
-    });
-
     return slider;
   }
 
   private createSmallButton(label: string, x: number, y: number): Container {
     const btn = new Container();
-    btn.x = x - 15;
+    btn.x = x;
     btn.y = y;
 
     const bg = new Graphics();
@@ -841,23 +874,39 @@ export class DesignScreen implements Screen {
     // Update stats
     const perf = this.gameState.performance;
     if (perf && perf.isValid) {
-      this.statsText.text = `Thrust: ${perf.thrust.toFixed(1)} kN  |  Isp: ${perf.specificImpulse.toFixed(0)} s  |  Mass: ${perf.totalMass.toFixed(0)} kg`;
-      this.statsText.style.fill = 0x4ecdc4;
+      const twrColor = perf.thrustToWeight >= 1.2 ? '✓' : '⚠';
+      this.statsText.text = `Thrust: ${perf.thrust.toFixed(1)} kN | T/W: ${perf.thrustToWeight.toFixed(2)} ${twrColor} | Isp: ${perf.specificImpulse.toFixed(0)}s | Mass: ${perf.totalMass.toFixed(0)} kg`;
+      this.statsText.style.fill = perf.thrustToWeight >= 1.2 && perf.thrust >= 100 ? 0x4ecdc4 : 0xffaa00;
     } else {
       this.statsText.text = 'Add all required components to see performance';
       this.statsText.style.fill = 0x888888;
     }
 
     // Update validation messages
-    if (perf && !perf.isValid) {
-      this.validationText.text = '⚠ ' + perf.validationErrors.join('\n⚠ ');
-    } else if (remaining < 0) {
-      this.validationText.text = '⚠ Over budget! Remove or downgrade components.';
-    } else if (perf && perf.thrust < 100) {
-      this.validationText.text = `ℹ Current thrust: ${perf.thrust.toFixed(1)} kN (need 100 kN)`;
-    } else {
-      this.validationText.text = '';
+    const messages: string[] = [];
+    
+    if (perf && !perf.isValid && perf.validationErrors.length > 0) {
+      messages.push(...perf.validationErrors.map(e => `⚠ ${e}`));
     }
+    
+    if (perf && perf.warnings && perf.warnings.length > 0) {
+      messages.push(...perf.warnings.map(w => `ℹ ${w}`));
+    }
+    
+    if (remaining < 0) {
+      messages.push('⚠ Over budget! Remove or downgrade components.');
+    }
+    
+    if (perf && perf.isValid) {
+      if (perf.thrust < 100) {
+        messages.push(`ℹ Need more thrust: ${perf.thrust.toFixed(1)} kN / 100 kN`);
+      }
+      if (perf.thrustToWeight < 1.2) {
+        messages.push(`ℹ T/W too low: ${perf.thrustToWeight.toFixed(2)} / 1.2 - reduce weight or increase thrust`);
+      }
+    }
+    
+    this.validationText.text = messages.join('\n');
 
     // Update engine preview
     this.updateEnginePreview();

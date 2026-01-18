@@ -31,26 +31,38 @@ export const LEVELS: LevelConfig[] = [
   {
     id: 1,
     name: 'First Engine Test',
-    description: 'Build your first rocket engine and achieve 100 kN of thrust',
-    budget: 50000,
+    description: 'Build your first rocket engine and achieve 100 kN of thrust with a thrust-to-weight ratio above 1.0',
+    budget: 75000,
     propellant: 'RP1-LOX',
     objectives: [
       {
         id: 'thrust',
-        description: 'Achieve 100 kN thrust at sea level',
+        description: 'Achieve ≥100 kN thrust at sea level',
         check: (p) => p.thrust >= 100,
         isPrimary: true,
       },
       {
-        id: 'success',
-        description: 'Complete a successful test fire',
-        check: (p) => p.isValid && p.thrust > 0,
+        id: 'twr',
+        description: 'Thrust-to-weight ratio ≥1.2 (can lift off)',
+        check: (p) => p.thrustToWeight >= 1.2,
+        isPrimary: true,
+      },
+      {
+        id: 'valid',
+        description: 'All systems nominal (no errors)',
+        check: (p) => p.isValid,
         isPrimary: true,
       },
       {
         id: 'budget',
-        description: 'Stay within budget ($50,000)',
+        description: 'Stay within budget ($75,000)',
         check: (_p, s) => s.spentBudget <= s.totalBudget,
+        isPrimary: false,
+      },
+      {
+        id: 'burn',
+        description: 'Burn time ≥20 seconds',
+        check: (p) => p.burnTime >= 20,
         isPrimary: false,
       },
     ],
@@ -63,7 +75,7 @@ export const LEVELS: LevelConfig[] = [
       'oxidizerTank',
     ],
     availableMaterials: ['steel', 'aluminum'],
-    engineerQuote: "Alright rookie, nothing fancy here. Just get the engine to produce 100 kilonewtons of thrust without blowing anything up. Easy, right?",
+    engineerQuote: "Alright rookie, we need 100 kilonewtons of thrust AND a T/W ratio above 1.2 so this thing can actually lift off. Watch your propellant mixture ratio - should be about 2.3 parts LOX to 1 part fuel by mass.",
   },
 ];
 
