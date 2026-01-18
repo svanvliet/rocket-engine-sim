@@ -20,8 +20,10 @@
   },
   "homepage": "https://github.com/svanvliet/rocket-engine-sim#readme",
   "dependencies": {
+    "@types/three": "^0.182.0",
     "howler": "^2.2.4",
-    "pixi.js": "^8.15.0"
+    "pixi.js": "^8.15.0",
+    "three": "^0.182.0"
   },
   "devDependencies": {
     "@types/howler": "^2.2.12",

@@ -7,6 +7,7 @@ import {
   MATERIALS 
 } from '../core/Physics';
 import { Colors, TextStyles, Fonts, UI, modifyStyle } from '../core/Theme';
+import { Engine3DRenderer } from '../core/Engine3DRenderer';
 
 export class DesignScreen implements Screen {
   public container: Container;
@@ -22,6 +23,10 @@ export class DesignScreen implements Screen {
   private componentListPanel!: Container;
   private validationText!: Text;
   private testButton!: Container;
+  
+  // 3D renderer
+  private engine3D: Engine3DRenderer | null = null;
+  private threeDContainer: HTMLDivElement | null = null;
   
   private selectedComponentId: string | null = null;
   private unsubscribe: (() => void) | null = null;
@@ -258,22 +263,48 @@ export class DesignScreen implements Screen {
     bg.stroke({ color: Colors.border, width: 1 });
     panel.addChild(bg);
 
-    // Title
+    // Title bar
+    const titleBar = new Graphics();
+    titleBar.rect(0, 0, panelWidth, 35);
+    titleBar.fill({ color: Colors.panel });
+    panel.addChild(titleBar);
+
     const title = new Text({
-      text: 'YOUR ENGINE',
+      text: '3D ENGINE PREVIEW',
       style: TextStyles.panelLabel,
     });
     title.x = UI.spacing.md;
-    title.y = 12;
+    title.y = 10;
     panel.addChild(title);
 
-    // Engine preview container
+    // Reset camera button
+    const resetBtn = this.createSmallTextButton('Reset View', panelWidth - 80, 7);
+    resetBtn.on('pointerdown', () => {
+      if (this.engine3D) {
+        this.engine3D.resetCamera();
+      }
+    });
+    panel.addChild(resetBtn);
+
+    // Instructions
+    const instructions = new Text({
+      text: 'Drag to rotate • Scroll to zoom • Right-click to pan',
+      style: modifyStyle(TextStyles.labelSmall, { fill: Colors.textMuted, fontSize: 10 }),
+    });
+    instructions.anchor.set(0.5, 0);
+    instructions.x = panelWidth / 2;
+    instructions.y = panelHeight - 25;
+    panel.addChild(instructions);
+
+    // Create 3D viewport container (HTML overlay)
+    this.setup3DViewport(panelWidth, panelHeight);
+
+    // Placeholder for 2D engine preview (hidden, kept for reference)
     this.enginePreview = new Container();
-    this.enginePreview.x = panelWidth / 2;
-    this.enginePreview.y = panelHeight / 2 - 20;
+    this.enginePreview.visible = false;
     panel.addChild(this.enginePreview);
 
-    // Component list (clickable)
+    // Component list (clickable) - moved to bottom left
     this.componentListPanel = new Container();
     this.componentListPanel.x = 15;
     this.componentListPanel.y = 40;
@@ -293,6 +324,70 @@ export class DesignScreen implements Screen {
     panel.addChild(this.validationText);
 
     return panel;
+  }
+
+  private setup3DViewport(panelWidth: number, panelHeight: number): void {
+    // Create HTML container for Three.js
+    this.threeDContainer = document.createElement('div');
+    this.threeDContainer.id = 'engine-3d-viewport';
+    this.threeDContainer.style.position = 'absolute';
+    this.threeDContainer.style.left = `${220}px`;
+    this.threeDContainer.style.top = `${50 + 35}px`; // Panel position + title bar
+    this.threeDContainer.style.width = `${panelWidth}px`;
+    this.threeDContainer.style.height = `${panelHeight - 60}px`; // Account for title and instructions
+    this.threeDContainer.style.overflow = 'hidden';
+    this.threeDContainer.style.borderRadius = '0';
+    document.body.appendChild(this.threeDContainer);
+
+    // Initialize 3D renderer
+    this.engine3D = new Engine3DRenderer(
+      this.threeDContainer,
+      panelWidth,
+      panelHeight - 60
+    );
+
+    // Initial update
+    this.update3DEngine();
+  }
+
+  private createSmallTextButton(label: string, x: number, y: number): Container {
+    const btn = new Container();
+    btn.x = x;
+    btn.y = y;
+
+    const bg = new Graphics();
+    bg.roundRect(0, 0, 70, 20, 3);
+    bg.fill({ color: Colors.panelHover });
+    bg.stroke({ color: Colors.border, width: 1 });
+    btn.addChild(bg);
+
+    const text = new Text({
+      text: label,
+      style: modifyStyle(TextStyles.labelSmall, { fontSize: 9 }),
+    });
+    text.anchor.set(0.5);
+    text.x = 35;
+    text.y = 10;
+    btn.addChild(text);
+
+    btn.eventMode = 'static';
+    btn.cursor = 'pointer';
+
+    btn.on('pointerover', () => {
+      bg.clear();
+      bg.roundRect(0, 0, 70, 20, 3);
+      bg.fill({ color: Colors.borderLight });
+      bg.stroke({ color: Colors.primary, width: 1 });
+    });
+
+    btn.on('pointerout', () => {
+      bg.clear();
+      bg.roundRect(0, 0, 70, 20, 3);
+      bg.fill({ color: Colors.panelHover });
+      bg.stroke({ color: Colors.border, width: 1 });
+    });
+
+    return btn;
   }
 
   private createPropertiesPanel(): Container {
@@ -652,112 +747,6 @@ export class DesignScreen implements Screen {
     });
   }
 
-  private updateEnginePreview(): void {
-    this.enginePreview.removeChildren();
-    
-    const components = this.gameState.components;
-    if (components.length === 0) return;
-
-    // Simple visual representation of engine
-    const hasChamber = components.some(c => c.type === 'combustionChamber');
-    const hasNozzle = components.some(c => c.type === 'nozzle');
-    const hasPump = components.some(c => c.type === 'turbopump');
-    const hasInjector = components.some(c => c.type === 'fuelInjector');
-    const hasFuelTank = components.some(c => c.type === 'fuelTank');
-    const hasOxTank = components.some(c => c.type === 'oxidizerTank');
-
-    let yOffset = -120;
-
-    // Tanks
-    if (hasFuelTank || hasOxTank) {
-      if (hasFuelTank) {
-        const tank = new Graphics();
-        tank.roundRect(-50, yOffset, 40, 60, 5);
-        tank.fill({ color: 0x8b0000 });
-        tank.stroke({ color: 0xcc4444, width: 2 });
-        this.enginePreview.addChild(tank);
-        
-        const label = new Text({ 
-          text: 'FUEL', 
-          style: modifyStyle(TextStyles.labelSmall, { fontSize: 8, fill: Colors.textPrimary }) 
-        });
-        label.anchor.set(0.5);
-        label.x = -30;
-        label.y = yOffset + 30;
-        this.enginePreview.addChild(label);
-      }
-      if (hasOxTank) {
-        const tank = new Graphics();
-        tank.roundRect(10, yOffset, 40, 60, 5);
-        tank.fill({ color: 0x4169e1 });
-        tank.stroke({ color: 0x6699ff, width: 2 });
-        this.enginePreview.addChild(tank);
-        
-        const label = new Text({ 
-          text: 'LOX', 
-          style: modifyStyle(TextStyles.labelSmall, { fontSize: 8, fill: Colors.textPrimary }) 
-        });
-        label.anchor.set(0.5);
-        label.x = 30;
-        label.y = yOffset + 30;
-        this.enginePreview.addChild(label);
-      }
-      yOffset += 70;
-    }
-
-    // Turbopump
-    if (hasPump) {
-      const pump = new Graphics();
-      pump.circle(0, yOffset + 15, 20);
-      pump.fill({ color: 0x444444 });
-      pump.stroke({ color: 0x888888, width: 2 });
-      this.enginePreview.addChild(pump);
-      
-      const gear = new Text({ 
-        text: '⚙', 
-        style: modifyStyle(TextStyles.icon, { fontSize: 20, fill: Colors.primary }) 
-      });
-      gear.anchor.set(0.5);
-      gear.x = 0;
-      gear.y = yOffset + 15;
-      this.enginePreview.addChild(gear);
-      yOffset += 45;
-    }
-
-    // Injector
-    if (hasInjector) {
-      const injector = new Graphics();
-      injector.rect(-25, yOffset, 50, 15);
-      injector.fill({ color: 0x555555 });
-      injector.stroke({ color: 0x777777, width: 1 });
-      this.enginePreview.addChild(injector);
-      yOffset += 20;
-    }
-
-    // Combustion chamber
-    if (hasChamber) {
-      const chamber = new Graphics();
-      chamber.roundRect(-30, yOffset, 60, 50, 5);
-      chamber.fill({ color: 0x666666 });
-      chamber.stroke({ color: 0x999999, width: 2 });
-      this.enginePreview.addChild(chamber);
-      yOffset += 55;
-    }
-
-    // Nozzle
-    if (hasNozzle) {
-      const nozzle = new Graphics();
-      nozzle.moveTo(-30, yOffset);
-      nozzle.lineTo(-45, yOffset + 60);
-      nozzle.lineTo(45, yOffset + 60);
-      nozzle.lineTo(30, yOffset);
-      nozzle.closePath();
-      nozzle.fill({ color: 0x555555 });
-      nozzle.stroke({ color: 0x888888, width: 2 });
-      this.enginePreview.addChild(nozzle);
-    }
-  }
-
   private createBottomBar(): Container {
     const bar = new Container();
     const { width } = this.game;
@@ -879,31 +868,73 @@ export class DesignScreen implements Screen {
     
     this.validationText.text = messages.join('\n');
 
-    // Update engine preview
-    this.updateEnginePreview();
+    // Update 3D engine and component list
+    this.update3DEngine();
     this.updateComponentList();
     this.updatePropertiesPanel();
+  }
+
+  private update3DEngine(): void {
+    if (!this.engine3D) return;
+
+    // Update 3D components
+    const components = this.gameState.components.map(comp => ({
+      id: comp.id,
+      type: comp.type,
+      properties: comp.properties,
+    }));
+
+    this.engine3D.updateComponents(components);
+    this.engine3D.highlightComponent(this.selectedComponentId);
   }
 
   private refreshUI(): void {
     // Full refresh of left panel
     this.container.removeChildren();
+    
+    // Clean up 3D viewport
+    if (this.engine3D) {
+      this.engine3D.dispose();
+      this.engine3D = null;
+    }
+    if (this.threeDContainer) {
+      this.threeDContainer.remove();
+      this.threeDContainer = null;
+    }
+    
     this.initialized = false;
     this.init();
   }
 
   public show(): void {
     this.container.visible = true;
+    if (this.threeDContainer) {
+      this.threeDContainer.style.display = 'block';
+    }
   }
 
   public hide(): void {
     this.container.visible = false;
+    if (this.threeDContainer) {
+      this.threeDContainer.style.display = 'none';
+    }
   }
 
   public destroy(): void {
     if (this.unsubscribe) {
       this.unsubscribe();
     }
+    
+    // Clean up 3D viewport
+    if (this.engine3D) {
+      this.engine3D.dispose();
+      this.engine3D = null;
+    }
+    if (this.threeDContainer) {
+      this.threeDContainer.remove();
+      this.threeDContainer = null;
+    }
+    
     this.container.destroy({ children: true });
   }
 }
