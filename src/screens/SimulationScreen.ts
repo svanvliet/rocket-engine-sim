@@ -1,5 +1,6 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Screen, Game } from '../core/Game';
+import { Colors, TextStyles, modifyStyle } from '../core/Theme';
 
 export class SimulationScreen implements Screen {
   public container: Container;
@@ -26,17 +27,12 @@ export class SimulationScreen implements Screen {
     // Title bar
     const titleBar = new Graphics();
     titleBar.rect(0, 0, width, 50);
-    titleBar.fill({ color: 0x111118 });
+    titleBar.fill({ color: Colors.panel });
     this.container.addChild(titleBar);
 
     const title = new Text({
       text: '🔥 TEST FIRE SIMULATION',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 18,
-        fontWeight: 'bold',
-        fill: 0xff6b35,
-      }),
+      style: modifyStyle(TextStyles.subheading, { fill: Colors.primary }),
     });
     title.anchor.set(0.5, 0.5);
     title.x = width / 2;
@@ -71,7 +67,7 @@ export class SimulationScreen implements Screen {
     const bg = new Graphics();
     bg.roundRect(0, 0, areaWidth, areaHeight, 8);
     bg.fill({ color: 0x0a0a12 });
-    bg.stroke({ color: 0x2a2a3a, width: 1 });
+    bg.stroke({ color: Colors.border, width: 1 });
     area.addChild(bg);
 
     // Test stand representation
@@ -92,12 +88,7 @@ export class SimulationScreen implements Screen {
     // Countdown display
     const countdown = new Text({
       text: 'T-00:03',
-      style: new TextStyle({
-        fontFamily: 'Courier New, monospace',
-        fontSize: 48,
-        fontWeight: 'bold',
-        fill: 0x00ff88,
-      }),
+      style: TextStyles.valueLarge,
     });
     countdown.anchor.set(0.5);
     countdown.x = areaWidth / 2;
@@ -107,12 +98,7 @@ export class SimulationScreen implements Screen {
     // Status text
     const status = new Text({
       text: 'IGNITION SEQUENCE INITIATED',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 16,
-        fill: 0xffcc00,
-        letterSpacing: 2,
-      }),
+      style: modifyStyle(TextStyles.body, { fontSize: 16, fill: Colors.warning, letterSpacing: 2 }),
     });
     status.anchor.set(0.5);
     status.x = areaWidth / 2;
@@ -178,19 +164,14 @@ export class SimulationScreen implements Screen {
 
     const bg = new Graphics();
     bg.roundRect(0, 0, panelWidth, panelHeight, 8);
-    bg.fill({ color: 0x111118 });
-    bg.stroke({ color: 0x2a2a3a, width: 1 });
+    bg.fill({ color: Colors.panel });
+    bg.stroke({ color: Colors.border, width: 1 });
     panel.addChild(bg);
 
     // Title
     const title = new Text({
       text: 'LIVE TELEMETRY',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 12,
-        fill: 0x888888,
-        letterSpacing: 2,
-      }),
+      style: TextStyles.panelLabel,
     });
     title.x = 15;
     title.y = 15;
@@ -212,11 +193,7 @@ export class SimulationScreen implements Screen {
       // Label
       const label = new Text({
         text: metric.label,
-        style: new TextStyle({
-          fontFamily: 'Arial, sans-serif',
-          fontSize: 12,
-          fill: 0x888888,
-        }),
+        style: TextStyles.labelSmall,
       });
       label.x = 15;
       label.y = y;
@@ -225,11 +202,9 @@ export class SimulationScreen implements Screen {
       // Value
       const value = new Text({
         text: metric.value,
-        style: new TextStyle({
-          fontFamily: 'Courier New, monospace',
-          fontSize: 22,
-          fontWeight: 'bold',
-          fill: metric.good ? 0x00ff88 : 0xff4444,
+        style: modifyStyle(TextStyles.value, { 
+          fontSize: 22, 
+          fill: metric.good ? Colors.success : Colors.error 
         }),
       });
       value.x = 15;
@@ -239,11 +214,7 @@ export class SimulationScreen implements Screen {
       // Target
       const target = new Text({
         text: 'Target: ' + metric.target,
-        style: new TextStyle({
-          fontFamily: 'Arial, sans-serif',
-          fontSize: 10,
-          fill: 0x555555,
-        }),
+        style: modifyStyle(TextStyles.labelSmall, { fontSize: 10, fill: Colors.textDark }),
       });
       target.x = 15;
       target.y = y + 48;
@@ -260,18 +231,18 @@ export class SimulationScreen implements Screen {
 
     const bg = new Graphics();
     bg.rect(0, 0, width, barHeight);
-    bg.fill({ color: 0x111118 });
+    bg.fill({ color: Colors.panel });
     bar.addChild(bg);
 
     // Abort button
-    const abortBtn = this.createButton('ABORT', 0xff3333, false);
+    const abortBtn = this.createButton('ABORT', Colors.errorDark, false);
     abortBtn.x = 100;
     abortBtn.y = barHeight / 2;
     abortBtn.on('pointerdown', () => this.game.switchScreen('design'));
     bar.addChild(abortBtn);
 
     // Results button (would show after test completes)
-    const resultsBtn = this.createButton('View Results →', 0xff6b35, true);
+    const resultsBtn = this.createButton('View Results →', Colors.primary, true);
     resultsBtn.x = width - 120;
     resultsBtn.y = barHeight / 2;
     resultsBtn.on('pointerdown', () => this.game.switchScreen('results'));
@@ -280,11 +251,7 @@ export class SimulationScreen implements Screen {
     // Test progress
     const progress = new Text({
       text: 'Test Progress: 67% | Duration: 20.1s / 30s',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 14,
-        fill: 0x888888,
-      }),
+      style: modifyStyle(TextStyles.body, { fill: Colors.textMuted }),
     });
     progress.anchor.set(0.5);
     progress.x = width / 2;
@@ -304,19 +271,14 @@ export class SimulationScreen implements Screen {
     if (primary) {
       bg.fill({ color });
     } else {
-      bg.fill({ color: 0x1a1a2e });
+      bg.fill({ color: Colors.panelHover });
       bg.stroke({ color, width: 2 });
     }
     button.addChild(bg);
 
     const text = new Text({
       text: label,
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 14,
-        fontWeight: 'bold',
-        fill: primary ? 0xffffff : color,
-      }),
+      style: modifyStyle(TextStyles.buttonSmall, { fill: primary ? Colors.textPrimary : color }),
     });
     text.anchor.set(0.5);
     button.addChild(text);

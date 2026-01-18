@@ -1,5 +1,6 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Screen, Game } from '../core/Game';
+import { Colors, TextStyles, modifyStyle } from '../core/Theme';
 
 type Difficulty = 'casual' | 'normal' | 'hard' | 'hardcore';
 
@@ -30,17 +31,11 @@ export class DifficultyScreen implements Screen {
     // Background
     const bg = new Graphics();
     bg.rect(0, 0, width, height);
-    bg.fill({ color: 0x0a0a0a });
+    bg.fill({ color: Colors.background });
     this.container.addChild(bg);
 
     // Title
-    const titleStyle = new TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 36,
-      fontWeight: 'bold',
-      fill: 0xffffff,
-    });
-    const title = new Text({ text: 'SELECT DIFFICULTY', style: titleStyle });
+    const title = new Text({ text: 'SELECT DIFFICULTY', style: TextStyles.screenTitle });
     title.anchor.set(0.5, 0);
     title.x = width / 2;
     title.y = 60;
@@ -115,17 +110,12 @@ export class DifficultyScreen implements Screen {
     // Card background
     const bg = new Graphics();
     bg.roundRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 10);
-    bg.fill({ color: isSelected ? 0x1a1a2e : 0x111111 });
+    bg.fill({ color: isSelected ? Colors.panelHover : 0x111111 });
     bg.stroke({ color: isSelected ? diff.color : 0x333333, width: isSelected ? 3 : 1 });
     card.addChild(bg);
 
     // Difficulty name
-    const nameStyle = new TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 24,
-      fontWeight: 'bold',
-      fill: diff.color,
-    });
+    const nameStyle = modifyStyle(TextStyles.heading, { fill: diff.color });
     const name = new Text({ text: diff.name, style: nameStyle });
     name.anchor.set(0, 0.5);
     name.x = -cardWidth / 2 + 20;
@@ -133,12 +123,10 @@ export class DifficultyScreen implements Screen {
     card.addChild(name);
 
     // Description
-    const descStyle = new TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 14,
-      fill: 0x888888,
-      wordWrap: true,
-      wordWrapWidth: cardWidth - 40,
+    const descStyle = modifyStyle(TextStyles.body, { 
+      fill: Colors.textMuted, 
+      wordWrap: true, 
+      wordWrapWidth: cardWidth - 40 
     });
     const desc = new Text({ text: diff.description, style: descStyle });
     desc.anchor.set(0, 0.5);
@@ -155,7 +143,7 @@ export class DifficultyScreen implements Screen {
 
       const check = new Text({ 
         text: '✓', 
-        style: new TextStyle({ fontSize: 16, fill: 0xffffff, fontWeight: 'bold' }) 
+        style: modifyStyle(TextStyles.button, { fontSize: 16 }) 
       });
       check.anchor.set(0.5);
       check.x = cardWidth / 2 - 30;
@@ -203,16 +191,12 @@ export class DifficultyScreen implements Screen {
     const bg = new Graphics();
     bg.roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 6);
     bg.fill({ color: 0x222222 });
-    bg.stroke({ color: 0x444444, width: 1 });
+    bg.stroke({ color: Colors.borderHover, width: 1 });
     button.addChild(bg);
 
     const text = new Text({
       text: '← Back',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 16,
-        fill: 0xaaaaaa,
-      }),
+      style: modifyStyle(TextStyles.button, { fontSize: 16, fill: 0xaaaaaa }),
     });
     text.anchor.set(0.5);
     button.addChild(text);
@@ -234,17 +218,12 @@ export class DifficultyScreen implements Screen {
 
     const bg = new Graphics();
     bg.roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 6);
-    bg.fill({ color: 0xff6b35 });
+    bg.fill({ color: Colors.primary });
     button.addChild(bg);
 
     const text = new Text({
       text: 'Start Game →',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 18,
-        fontWeight: 'bold',
-        fill: 0xffffff,
-      }),
+      style: modifyStyle(TextStyles.button, { fontSize: 18 }),
     });
     text.anchor.set(0.5);
     button.addChild(text);
@@ -255,13 +234,13 @@ export class DifficultyScreen implements Screen {
     button.on('pointerover', () => {
       bg.clear();
       bg.roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 6);
-      bg.fill({ color: 0xff8c5a });
+      bg.fill({ color: Colors.primaryHover });
     });
 
     button.on('pointerout', () => {
       bg.clear();
       bg.roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 6);
-      bg.fill({ color: 0xff6b35 });
+      bg.fill({ color: Colors.primary });
     });
 
     button.on('pointerdown', () => {

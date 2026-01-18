@@ -6,6 +6,7 @@ import {
   COMPONENT_DEFINITIONS,
   MATERIALS 
 } from '../core/Physics';
+import { Colors, TextStyles, Fonts, UI, modifyStyle } from '../core/Theme';
 
 export class DesignScreen implements Screen {
   public container: Container;
@@ -82,34 +83,25 @@ export class DesignScreen implements Screen {
 
     const topBar = new Graphics();
     topBar.rect(0, 0, width, 50);
-    topBar.fill({ color: 0x111118 });
+    topBar.fill({ color: Colors.panel });
     this.container.addChild(topBar);
 
     // Level indicator
     const levelText = new Text({
       text: `Level ${this.gameState.currentLevel.id}: ${this.gameState.currentLevel.name}`,
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 16,
-        fontWeight: 'bold',
-        fill: 0xffffff,
-      }),
+      style: TextStyles.subheading,
     });
-    levelText.x = 20;
+    levelText.x = UI.spacing.lg;
     levelText.y = 15;
     this.container.addChild(levelText);
 
     // Budget display
     this.budgetText = new Text({
       text: '',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 14,
-        fill: 0x4ecdc4,
-      }),
+      style: modifyStyle(TextStyles.value, { fontSize: 14 }),
     });
     this.budgetText.anchor.set(1, 0);
-    this.budgetText.x = width - 20;
+    this.budgetText.x = width - UI.spacing.lg;
     this.budgetText.y = 17;
     this.container.addChild(this.budgetText);
   }
@@ -121,21 +113,16 @@ export class DesignScreen implements Screen {
 
     const bg = new Graphics();
     bg.rect(0, 0, panelWidth, panelHeight);
-    bg.fill({ color: 0x111118 });
-    bg.stroke({ color: 0x2a2a3a, width: 1 });
+    bg.fill({ color: Colors.panel });
+    bg.stroke({ color: Colors.border, width: 1 });
     panel.addChild(bg);
 
     // Title
     const title = new Text({
       text: 'ADD COMPONENTS',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 11,
-        fill: 0x888888,
-        letterSpacing: 2,
-      }),
+      style: TextStyles.panelLabel,
     });
-    title.x = 15;
+    title.x = UI.spacing.md;
     title.y = 12;
     panel.addChild(title);
 
@@ -169,11 +156,11 @@ export class DesignScreen implements Screen {
     const item = new Container();
     const itemHeight = 50;
 
-    const bgColor = hasComponent ? 0x1a3a1a : 0x1a1a2e;
-    const borderColor = hasComponent ? 0x2a5a2a : 0x333344;
+    const bgColor = hasComponent ? Colors.successDark : Colors.panelHover;
+    const borderColor = hasComponent ? 0x2a5a2a : Colors.borderLight;
 
     const bg = new Graphics();
-    bg.roundRect(0, 0, itemWidth, itemHeight, 6);
+    bg.roundRect(0, 0, itemWidth, itemHeight, UI.borderRadius.medium);
     bg.fill({ color: bgColor });
     bg.stroke({ color: borderColor, width: 1 });
     item.addChild(bg);
@@ -181,10 +168,8 @@ export class DesignScreen implements Screen {
     // Icon
     const icon = new Text({
       text: def.icon,
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 18,
-        fill: hasComponent ? 0x4ecdc4 : 0xff6b35,
+      style: modifyStyle(TextStyles.icon, { 
+        fill: hasComponent ? Colors.secondary : Colors.primary 
       }),
     });
     icon.x = 10;
@@ -194,11 +179,7 @@ export class DesignScreen implements Screen {
     // Name
     const name = new Text({
       text: def.name,
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 12,
-        fill: 0xdddddd,
-      }),
+      style: TextStyles.bodySmall,
     });
     name.x = 35;
     name.y = 8;
@@ -208,10 +189,9 @@ export class DesignScreen implements Screen {
     const statusText = hasComponent ? '✓ Added' : `$${def.baseCost.toLocaleString()}`;
     const status = new Text({
       text: statusText,
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
+      style: modifyStyle(TextStyles.labelSmall, {
+        fill: hasComponent ? Colors.secondary : Colors.textMuted,
         fontSize: 10,
-        fill: hasComponent ? 0x4ecdc4 : 0x888888,
       }),
     });
     status.x = 35;
@@ -221,13 +201,18 @@ export class DesignScreen implements Screen {
     // Add button
     if (!hasComponent) {
       const addBtn = new Graphics();
-      addBtn.roundRect(itemWidth - 35, 12, 25, 25, 4);
-      addBtn.fill({ color: 0xff6b35 });
+      addBtn.roundRect(itemWidth - 35, 12, 25, 25, UI.borderRadius.small);
+      addBtn.fill({ color: Colors.primary });
       item.addChild(addBtn);
 
       const plus = new Text({
         text: '+',
-        style: new TextStyle({ fontSize: 18, fill: 0xffffff, fontWeight: 'bold' }),
+        style: new TextStyle({ 
+          fontFamily: Fonts.body, 
+          fontSize: 18, 
+          fill: Colors.textPrimary, 
+          fontWeight: 'bold' 
+        }),
       });
       plus.anchor.set(0.5);
       plus.x = itemWidth - 22;
@@ -239,14 +224,14 @@ export class DesignScreen implements Screen {
 
       item.on('pointerover', () => {
         bg.clear();
-        bg.roundRect(0, 0, itemWidth, itemHeight, 6);
+        bg.roundRect(0, 0, itemWidth, itemHeight, UI.borderRadius.medium);
         bg.fill({ color: 0x2a2a4e });
-        bg.stroke({ color: 0xff6b35, width: 1 });
+        bg.stroke({ color: Colors.primary, width: 1 });
       });
 
       item.on('pointerout', () => {
         bg.clear();
-        bg.roundRect(0, 0, itemWidth, itemHeight, 6);
+        bg.roundRect(0, 0, itemWidth, itemHeight, UI.borderRadius.medium);
         bg.fill({ color: bgColor });
         bg.stroke({ color: borderColor, width: 1 });
       });
@@ -269,21 +254,16 @@ export class DesignScreen implements Screen {
     // Background
     const bg = new Graphics();
     bg.rect(0, 0, panelWidth, panelHeight);
-    bg.fill({ color: 0x0a0a10 });
-    bg.stroke({ color: 0x2a2a3a, width: 1 });
+    bg.fill({ color: Colors.background });
+    bg.stroke({ color: Colors.border, width: 1 });
     panel.addChild(bg);
 
     // Title
     const title = new Text({
       text: 'YOUR ENGINE',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 11,
-        fill: 0x888888,
-        letterSpacing: 2,
-      }),
+      style: TextStyles.panelLabel,
     });
-    title.x = 15;
+    title.x = UI.spacing.md;
     title.y = 12;
     panel.addChild(title);
 
@@ -302,15 +282,13 @@ export class DesignScreen implements Screen {
     // Validation messages
     this.validationText = new Text({
       text: '',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 12,
-        fill: 0xff6b35,
+      style: modifyStyle(TextStyles.body, {
+        fill: Colors.primary,
         wordWrap: true,
         wordWrapWidth: panelWidth - 30,
       }),
     });
-    this.validationText.x = 15;
+    this.validationText.x = UI.spacing.md;
     this.validationText.y = panelHeight - 50;
     panel.addChild(this.validationText);
 
@@ -324,21 +302,16 @@ export class DesignScreen implements Screen {
 
     const bg = new Graphics();
     bg.rect(0, 0, panelWidth, panelHeight);
-    bg.fill({ color: 0x111118 });
-    bg.stroke({ color: 0x2a2a3a, width: 1 });
+    bg.fill({ color: Colors.panel });
+    bg.stroke({ color: Colors.border, width: 1 });
     panel.addChild(bg);
 
     // Title
     const title = new Text({
       text: 'COMPONENT PROPERTIES',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 11,
-        fill: 0x888888,
-        letterSpacing: 2,
-      }),
+      style: TextStyles.panelLabel,
     });
-    title.x = 15;
+    title.x = UI.spacing.md;
     title.y = 12;
     panel.addChild(title);
 
@@ -357,10 +330,8 @@ export class DesignScreen implements Screen {
     if (!this.selectedComponentId) {
       const placeholder = new Text({
         text: 'Click a component\nin your engine to\nedit its properties',
-        style: new TextStyle({
-          fontFamily: 'Arial, sans-serif',
-          fontSize: 14,
-          fill: 0x555555,
+        style: modifyStyle(TextStyles.body, {
+          fill: Colors.textMuted,
           align: 'center',
           lineHeight: 24,
         }),
@@ -381,14 +352,9 @@ export class DesignScreen implements Screen {
     // Component name
     const nameText = new Text({
       text: def.name,
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 16,
-        fontWeight: 'bold',
-        fill: 0xff6b35,
-      }),
+      style: modifyStyle(TextStyles.subheading, { fill: Colors.primary }),
     });
-    nameText.x = 15;
+    nameText.x = UI.spacing.md;
     nameText.y = yPos;
     this.propertiesPanel.addChild(nameText);
     yPos += 30;
@@ -396,9 +362,9 @@ export class DesignScreen implements Screen {
     // Material selector
     const materialLabel = new Text({
       text: 'Material:',
-      style: new TextStyle({ fontFamily: 'Arial, sans-serif', fontSize: 12, fill: 0x888888 }),
+      style: TextStyles.label,
     });
-    materialLabel.x = 15;
+    materialLabel.x = UI.spacing.md;
     materialLabel.y = yPos;
     this.propertiesPanel.addChild(materialLabel);
     yPos += 20;
@@ -420,18 +386,18 @@ export class DesignScreen implements Screen {
       
       const label = new Text({
         text: range.label,
-        style: new TextStyle({ fontFamily: 'Arial, sans-serif', fontSize: 12, fill: 0x888888 }),
+        style: TextStyles.label,
       });
-      label.x = 15;
+      label.x = UI.spacing.md;
       label.y = yPos;
       this.propertiesPanel.addChild(label);
 
       const valueText = new Text({
         text: `${currentValue.toFixed(2)} ${range.unit}`,
-        style: new TextStyle({ fontFamily: 'Arial, sans-serif', fontSize: 12, fill: 0x4ecdc4 }),
+        style: TextStyles.value,
       });
       valueText.anchor.set(1, 0);
-      valueText.x = panelWidth - 15;
+      valueText.x = panelWidth - UI.spacing.md;
       valueText.y = yPos;
       this.propertiesPanel.addChild(valueText);
       yPos += 22;
@@ -449,14 +415,14 @@ export class DesignScreen implements Screen {
           });
         }
       );
-      slider.x = 15;
+      slider.x = UI.spacing.md;
       slider.y = yPos;
       this.propertiesPanel.addChild(slider);
       yPos += 35;
     }
 
     // Remove button
-    const removeBtn = this.createButton('Remove Component', 0xff4444, false, 240);
+    const removeBtn = this.createButton('Remove Component', Colors.danger, false, 240);
     removeBtn.x = panelWidth / 2;
     removeBtn.y = panelHeight - 40;
     removeBtn.on('pointerdown', () => {
@@ -473,17 +439,16 @@ export class DesignScreen implements Screen {
     const h = 30;
 
     const bg = new Graphics();
-    bg.roundRect(0, 0, w, h, 4);
-    bg.fill({ color: selected ? 0x2a4a2a : 0x1a1a2e });
-    bg.stroke({ color: selected ? 0x4ecdc4 : 0x333344, width: 1 });
+    bg.roundRect(0, 0, w, h, UI.borderRadius.small);
+    bg.fill({ color: selected ? Colors.successDark : Colors.panelHover });
+    bg.stroke({ color: selected ? Colors.secondary : Colors.borderLight, width: 1 });
     btn.addChild(bg);
 
     const text = new Text({
       text: name.split(' ')[0], // Just first word
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
+      style: modifyStyle(TextStyles.labelSmall, {
+        fill: selected ? Colors.secondary : Colors.textSecondary,
         fontSize: 10,
-        fill: selected ? 0x4ecdc4 : 0xaaaaaa,
       }),
     });
     text.anchor.set(0.5);
@@ -517,20 +482,20 @@ export class DesignScreen implements Screen {
     // Track background
     const track = new Graphics();
     track.roundRect(25, 8, trackWidth, 4, 2);
-    track.fill({ color: 0x333344 });
+    track.fill({ color: Colors.borderLight });
     slider.addChild(track);
 
     // Filled portion
     const fill = new Graphics();
     fill.roundRect(25, 8, trackWidth * normalized, 4, 2);
-    fill.fill({ color: 0xff6b35 });
+    fill.fill({ color: Colors.primary });
     slider.addChild(fill);
 
     // Handle
     const handle = new Graphics();
     handle.circle(25 + trackWidth * normalized, 10, 8);
-    handle.fill({ color: 0xff6b35 });
-    handle.stroke({ color: 0xffffff, width: 2 });
+    handle.fill({ color: Colors.primary });
+    handle.stroke({ color: Colors.textPrimary, width: 2 });
     slider.addChild(handle);
 
     // Make handle draggable
@@ -604,12 +569,17 @@ export class DesignScreen implements Screen {
 
     const bg = new Graphics();
     bg.circle(0, 10, 10);
-    bg.fill({ color: 0x2a2a4e });
+    bg.fill({ color: Colors.panelHover });
     btn.addChild(bg);
 
     const text = new Text({
       text: label,
-      style: new TextStyle({ fontSize: 14, fill: 0xffffff, fontWeight: 'bold' }),
+      style: new TextStyle({ 
+        fontFamily: Fonts.body,
+        fontSize: 14, 
+        fill: Colors.textPrimary, 
+        fontWeight: 'bold' 
+      }),
     });
     text.anchor.set(0.5);
     text.x = 0;
@@ -630,10 +600,8 @@ export class DesignScreen implements Screen {
     if (components.length === 0) {
       const hint = new Text({
         text: '← Add components from the left panel\n\nBuild a complete engine with:\n• Combustion Chamber\n• Nozzle\n• Fuel Injector\n• Turbopump\n• Fuel Tank\n• Oxidizer Tank',
-        style: new TextStyle({
-          fontFamily: 'Arial, sans-serif',
-          fontSize: 13,
-          fill: 0x555555,
+        style: modifyStyle(TextStyles.body, {
+          fill: Colors.textMuted,
           lineHeight: 22,
         }),
       });
@@ -649,14 +617,14 @@ export class DesignScreen implements Screen {
       item.y = index * 35;
 
       const bg = new Graphics();
-      bg.roundRect(0, 0, 200, 30, 4);
-      bg.fill({ color: isSelected ? 0x2a4a6a : 0x1a1a2e });
-      bg.stroke({ color: isSelected ? 0x4ecdc4 : 0x333344, width: 1 });
+      bg.roundRect(0, 0, 200, 30, UI.borderRadius.small);
+      bg.fill({ color: isSelected ? 0x2a4a6a : Colors.panelHover });
+      bg.stroke({ color: isSelected ? Colors.secondary : Colors.borderLight, width: 1 });
       item.addChild(bg);
 
       const icon = new Text({
         text: def.icon,
-        style: new TextStyle({ fontSize: 14, fill: 0xff6b35 }),
+        style: modifyStyle(TextStyles.icon, { fontSize: 14, fill: Colors.primary }),
       });
       icon.x = 8;
       icon.y = 6;
@@ -664,10 +632,8 @@ export class DesignScreen implements Screen {
 
       const name = new Text({
         text: def.name,
-        style: new TextStyle({
-          fontFamily: 'Arial, sans-serif',
-          fontSize: 12,
-          fill: isSelected ? 0x4ecdc4 : 0xcccccc,
+        style: modifyStyle(TextStyles.bodySmall, {
+          fill: isSelected ? Colors.secondary : Colors.textSecondary,
         }),
       });
       name.x = 30;
@@ -711,7 +677,10 @@ export class DesignScreen implements Screen {
         tank.stroke({ color: 0xcc4444, width: 2 });
         this.enginePreview.addChild(tank);
         
-        const label = new Text({ text: 'FUEL', style: new TextStyle({ fontSize: 8, fill: 0xffffff }) });
+        const label = new Text({ 
+          text: 'FUEL', 
+          style: modifyStyle(TextStyles.labelSmall, { fontSize: 8, fill: Colors.textPrimary }) 
+        });
         label.anchor.set(0.5);
         label.x = -30;
         label.y = yOffset + 30;
@@ -724,7 +693,10 @@ export class DesignScreen implements Screen {
         tank.stroke({ color: 0x6699ff, width: 2 });
         this.enginePreview.addChild(tank);
         
-        const label = new Text({ text: 'LOX', style: new TextStyle({ fontSize: 8, fill: 0xffffff }) });
+        const label = new Text({ 
+          text: 'LOX', 
+          style: modifyStyle(TextStyles.labelSmall, { fontSize: 8, fill: Colors.textPrimary }) 
+        });
         label.anchor.set(0.5);
         label.x = 30;
         label.y = yOffset + 30;
@@ -741,7 +713,10 @@ export class DesignScreen implements Screen {
       pump.stroke({ color: 0x888888, width: 2 });
       this.enginePreview.addChild(pump);
       
-      const gear = new Text({ text: '⚙', style: new TextStyle({ fontSize: 20, fill: 0xff6b35 }) });
+      const gear = new Text({ 
+        text: '⚙', 
+        style: modifyStyle(TextStyles.icon, { fontSize: 20, fill: Colors.primary }) 
+      });
       gear.anchor.set(0.5);
       gear.x = 0;
       gear.y = yOffset + 15;
@@ -790,11 +765,11 @@ export class DesignScreen implements Screen {
 
     const bg = new Graphics();
     bg.rect(0, 0, width, barHeight);
-    bg.fill({ color: 0x111118 });
+    bg.fill({ color: Colors.panel });
     bar.addChild(bg);
 
     // Back button
-    const backBtn = this.createButton('← Back', 0x444444, false, 100);
+    const backBtn = this.createButton('← Back', Colors.textMuted, false, 100);
     backBtn.x = 70;
     backBtn.y = barHeight / 2;
     backBtn.on('pointerdown', () => this.game.switchScreen('levelBrief'));
@@ -803,11 +778,7 @@ export class DesignScreen implements Screen {
     // Stats display
     this.statsText = new Text({
       text: '',
-      style: new TextStyle({
-        fontFamily: 'Courier New, monospace',
-        fontSize: 14,
-        fill: 0x4ecdc4,
-      }),
+      style: TextStyles.statValue,
     });
     this.statsText.anchor.set(0.5);
     this.statsText.x = width / 2;
@@ -815,7 +786,7 @@ export class DesignScreen implements Screen {
     bar.addChild(this.statsText);
 
     // Test Fire button
-    this.testButton = this.createButton('🔥 Test Fire', 0xff6b35, true, 150);
+    this.testButton = this.createButton('🔥 Test Fire', Colors.primary, true, 150);
     this.testButton.x = width - 100;
     this.testButton.y = barHeight / 2;
     this.testButton.on('pointerdown', () => {
@@ -830,14 +801,14 @@ export class DesignScreen implements Screen {
 
   private createButton(label: string, color: number, primary: boolean, buttonWidth: number): Container {
     const button = new Container();
-    const buttonHeight = 40;
+    const buttonHeight = UI.buttonHeight;
 
     const bg = new Graphics();
-    bg.roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 6);
+    bg.roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, UI.borderRadius.medium);
     if (primary) {
       bg.fill({ color });
     } else {
-      bg.fill({ color: 0x1a1a2e });
+      bg.fill({ color: Colors.panelHover });
       bg.stroke({ color, width: 1 });
     }
     button.addChild(bg);
@@ -845,10 +816,10 @@ export class DesignScreen implements Screen {
     const text = new Text({
       text: label,
       style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: Fonts.body,
         fontSize: 14,
         fontWeight: primary ? 'bold' : 'normal',
-        fill: primary ? 0xffffff : color,
+        fill: primary ? Colors.textPrimary : color,
       }),
     });
     text.anchor.set(0.5);
@@ -867,7 +838,7 @@ export class DesignScreen implements Screen {
     const remaining = this.gameState.getRemainingBudget();
     const total = this.gameState.totalBudget;
     const spent = this.gameState.spentBudget;
-    const budgetColor = remaining >= 0 ? 0x4ecdc4 : 0xff4444;
+    const budgetColor = remaining >= 0 ? Colors.secondary : Colors.danger;
     this.budgetText.text = `Budget: $${spent.toLocaleString()} / $${total.toLocaleString()}`;
     this.budgetText.style.fill = budgetColor;
 
@@ -876,10 +847,10 @@ export class DesignScreen implements Screen {
     if (perf && perf.isValid) {
       const twrColor = perf.thrustToWeight >= 1.2 ? '✓' : '⚠';
       this.statsText.text = `Thrust: ${perf.thrust.toFixed(1)} kN | T/W: ${perf.thrustToWeight.toFixed(2)} ${twrColor} | Isp: ${perf.specificImpulse.toFixed(0)}s | Mass: ${perf.totalMass.toFixed(0)} kg`;
-      this.statsText.style.fill = perf.thrustToWeight >= 1.2 && perf.thrust >= 100 ? 0x4ecdc4 : 0xffaa00;
+      this.statsText.style.fill = perf.thrustToWeight >= 1.2 && perf.thrust >= 100 ? Colors.secondary : Colors.warning;
     } else {
       this.statsText.text = 'Add all required components to see performance';
-      this.statsText.style.fill = 0x888888;
+      this.statsText.style.fill = Colors.textMuted;
     }
 
     // Update validation messages

@@ -1,5 +1,6 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Screen, Game } from '../core/Game';
+import { Colors, TextStyles, modifyStyle } from '../core/Theme';
 
 export class LevelBriefScreen implements Screen {
   public container: Container;
@@ -20,16 +21,11 @@ export class LevelBriefScreen implements Screen {
     // Background
     const bg = new Graphics();
     bg.rect(0, 0, width, height);
-    bg.fill({ color: 0x0a0a0a });
+    bg.fill({ color: Colors.background });
     this.container.addChild(bg);
 
     // Level header
-    const levelStyle = new TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 18,
-      fill: 0xff6b35,
-      letterSpacing: 2,
-    });
+    const levelStyle = modifyStyle(TextStyles.levelIndicator, { fontSize: 18, letterSpacing: 2 });
     const level = new Text({ text: 'LEVEL 1', style: levelStyle });
     level.anchor.set(0.5, 0);
     level.x = width / 2;
@@ -37,12 +33,7 @@ export class LevelBriefScreen implements Screen {
     this.container.addChild(level);
 
     // Mission title
-    const titleStyle = new TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 32,
-      fontWeight: 'bold',
-      fill: 0xffffff,
-    });
+    const titleStyle = modifyStyle(TextStyles.screenTitle, { fontSize: 32 });
     const title = new Text({ text: 'First Engine Test', style: titleStyle });
     title.anchor.set(0.5, 0);
     title.x = width / 2;
@@ -57,19 +48,14 @@ export class LevelBriefScreen implements Screen {
 
     const panel = new Graphics();
     panel.roundRect(panelX, panelY, panelWidth, panelHeight, 10);
-    panel.fill({ color: 0x111118 });
-    panel.stroke({ color: 0x2a2a3a, width: 1 });
+    panel.fill({ color: Colors.panel });
+    panel.stroke({ color: Colors.border, width: 1 });
     this.container.addChild(panel);
 
     // Objectives section
     const objectivesLabel = new Text({
       text: 'OBJECTIVES',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 14,
-        fill: 0x888888,
-        letterSpacing: 2,
-      }),
+      style: TextStyles.panelLabel,
     });
     objectivesLabel.x = panelX + 30;
     objectivesLabel.y = panelY + 25;
@@ -85,16 +71,12 @@ export class LevelBriefScreen implements Screen {
     objectives.forEach((obj, index) => {
       const bullet = new Graphics();
       bullet.circle(panelX + 40, panelY + 65 + index * 32, 6);
-      bullet.fill({ color: obj.primary ? 0xff6b35 : 0x45b7d1 });
+      bullet.fill({ color: obj.primary ? Colors.primary : Colors.secondary });
       this.container.addChild(bullet);
 
       const objText = new Text({
         text: obj.text,
-        style: new TextStyle({
-          fontFamily: 'Arial, sans-serif',
-          fontSize: 16,
-          fill: 0xcccccc,
-        }),
+        style: modifyStyle(TextStyles.body, { fontSize: 16, fill: Colors.textSecondary }),
       });
       objText.x = panelX + 60;
       objText.y = panelY + 55 + index * 32;
@@ -105,18 +87,13 @@ export class LevelBriefScreen implements Screen {
     const divider = new Graphics();
     divider.moveTo(panelX + 30, panelY + 175);
     divider.lineTo(panelX + panelWidth - 30, panelY + 175);
-    divider.stroke({ color: 0x2a2a3a, width: 1 });
+    divider.stroke({ color: Colors.border, width: 1 });
     this.container.addChild(divider);
 
     // Available resources section
     const resourcesLabel = new Text({
       text: 'AVAILABLE RESOURCES',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 14,
-        fill: 0x888888,
-        letterSpacing: 2,
-      }),
+      style: TextStyles.panelLabel,
     });
     resourcesLabel.x = panelX + 30;
     resourcesLabel.y = panelY + 195;
@@ -131,11 +108,7 @@ export class LevelBriefScreen implements Screen {
     resources.forEach((res, index) => {
       const resLabel = new Text({
         text: res.label + ':',
-        style: new TextStyle({
-          fontFamily: 'Arial, sans-serif',
-          fontSize: 15,
-          fill: 0x888888,
-        }),
+        style: modifyStyle(TextStyles.body, { fontSize: 15, fill: Colors.textMuted }),
       });
       resLabel.x = panelX + 40;
       resLabel.y = panelY + 230 + index * 28;
@@ -143,11 +116,7 @@ export class LevelBriefScreen implements Screen {
 
       const resValue = new Text({
         text: res.value,
-        style: new TextStyle({
-          fontFamily: 'Arial, sans-serif',
-          fontSize: 15,
-          fill: 0xffffff,
-        }),
+        style: modifyStyle(TextStyles.body, { fontSize: 15, fill: Colors.textPrimary }),
       });
       resValue.x = panelX + 160;
       resValue.y = panelY + 230 + index * 28;
@@ -155,13 +124,9 @@ export class LevelBriefScreen implements Screen {
     });
 
     // Engineer quote
-    const quoteStyle = new TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 14,
-      fontStyle: 'italic',
-      fill: 0x666666,
-      wordWrap: true,
-      wordWrapWidth: panelWidth - 60,
+    const quoteStyle = modifyStyle(TextStyles.quote, { 
+      wordWrap: true, 
+      wordWrapWidth: panelWidth - 60 
     });
     const quote = new Text({
       text: '"Alright rookie, nothing fancy here. Just get the engine to produce 100 kilonewtons of thrust without blowing anything up. Easy, right?" — Chief Engineer',
@@ -194,20 +159,19 @@ export class LevelBriefScreen implements Screen {
     const bg = new Graphics();
     bg.roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 6);
     if (primary) {
-      bg.fill({ color: 0xff6b35 });
+      bg.fill({ color: Colors.primary });
     } else {
-      bg.fill({ color: 0x1a1a2e });
-      bg.stroke({ color: 0x444444, width: 1 });
+      bg.fill({ color: Colors.panelHover });
+      bg.stroke({ color: Colors.borderHover, width: 1 });
     }
     button.addChild(bg);
 
     const text = new Text({
       text: label,
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 16,
+      style: modifyStyle(TextStyles.button, { 
+        fontSize: 16, 
         fontWeight: primary ? 'bold' : 'normal',
-        fill: primary ? 0xffffff : 0xaaaaaa,
+        fill: primary ? Colors.textPrimary : 0xaaaaaa 
       }),
     });
     text.anchor.set(0.5);

@@ -1,5 +1,6 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Screen, Game } from '../core/Game';
+import { Colors, TextStyles, modifyStyle } from '../core/Theme';
 
 export class SplashScreen implements Screen {
   public container: Container;
@@ -20,7 +21,7 @@ export class SplashScreen implements Screen {
     // Background
     const bg = new Graphics();
     bg.rect(0, 0, width, height);
-    bg.fill({ color: 0x0a0a0a });
+    bg.fill({ color: Colors.background });
     this.container.addChild(bg);
 
     // Rocket icon (simple geometric representation)
@@ -30,26 +31,14 @@ export class SplashScreen implements Screen {
     this.container.addChild(rocket);
 
     // Title
-    const titleStyle = new TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 48,
-      fontWeight: 'bold',
-      fill: 0xffffff,
-      align: 'center',
-    });
-    const title = new Text({ text: 'ROCKET ENGINE\nSIMULATOR', style: titleStyle });
+    const title = new Text({ text: 'ROCKET ENGINE\nSIMULATOR', style: TextStyles.title });
     title.anchor.set(0.5);
     title.x = width / 2;
     title.y = height / 2 + 80;
     this.container.addChild(title);
 
     // Subtitle
-    const subtitleStyle = new TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 18,
-      fill: 0x888888,
-      align: 'center',
-    });
+    const subtitleStyle = modifyStyle(TextStyles.subheading, { fill: Colors.textMuted, align: 'center' });
     const subtitle = new Text({ text: 'Design. Build. Test. Launch.', style: subtitleStyle });
     subtitle.anchor.set(0.5);
     subtitle.x = width / 2;
@@ -57,11 +46,7 @@ export class SplashScreen implements Screen {
     this.container.addChild(subtitle);
 
     // Click to continue
-    const continueStyle = new TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 16,
-      fill: 0x666666,
-    });
+    const continueStyle = modifyStyle(TextStyles.body, { fill: Colors.textDark, fontSize: 16 });
     const continueText = new Text({ text: 'Click anywhere to continue', style: continueStyle });
     continueText.anchor.set(0.5);
     continueText.x = width / 2;
@@ -80,7 +65,7 @@ export class SplashScreen implements Screen {
     // Rocket body
     const body = new Graphics();
     body.roundRect(-20, -60, 40, 100, 8);
-    body.fill({ color: 0xcccccc });
+    body.fill({ color: Colors.textSecondary });
     rocket.addChild(body);
 
     // Nose cone
@@ -89,7 +74,7 @@ export class SplashScreen implements Screen {
     nose.lineTo(-20, -60);
     nose.lineTo(20, -60);
     nose.closePath();
-    nose.fill({ color: 0xff6b35 });
+    nose.fill({ color: Colors.primary });
     rocket.addChild(nose);
 
     // Fins
@@ -98,7 +83,7 @@ export class SplashScreen implements Screen {
     leftFin.lineTo(-40, 50);
     leftFin.lineTo(-20, 40);
     leftFin.closePath();
-    leftFin.fill({ color: 0xff6b35 });
+    leftFin.fill({ color: Colors.primary });
     rocket.addChild(leftFin);
 
     const rightFin = new Graphics();
@@ -106,7 +91,7 @@ export class SplashScreen implements Screen {
     rightFin.lineTo(40, 50);
     rightFin.lineTo(20, 40);
     rightFin.closePath();
-    rightFin.fill({ color: 0xff6b35 });
+    rightFin.fill({ color: Colors.primary });
     rocket.addChild(rightFin);
 
     // Engine nozzle

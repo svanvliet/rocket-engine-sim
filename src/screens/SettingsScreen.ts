@@ -1,5 +1,6 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Screen, Game } from '../core/Game';
+import { Colors, TextStyles, modifyStyle } from '../core/Theme';
 
 export class SettingsScreen implements Screen {
   public container: Container;
@@ -20,17 +21,11 @@ export class SettingsScreen implements Screen {
     // Background
     const bg = new Graphics();
     bg.rect(0, 0, width, height);
-    bg.fill({ color: 0x0a0a0a });
+    bg.fill({ color: Colors.background });
     this.container.addChild(bg);
 
     // Title
-    const titleStyle = new TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 36,
-      fontWeight: 'bold',
-      fill: 0xffffff,
-    });
-    const title = new Text({ text: 'SETTINGS', style: titleStyle });
+    const title = new Text({ text: 'SETTINGS', style: TextStyles.screenTitle });
     title.anchor.set(0.5, 0);
     title.x = width / 2;
     title.y = 60;
@@ -45,7 +40,7 @@ export class SettingsScreen implements Screen {
     const panel = new Graphics();
     panel.roundRect(panelX, panelY, panelWidth, panelHeight, 10);
     panel.fill({ color: 0x111111 });
-    panel.stroke({ color: 0x333333, width: 1 });
+    panel.stroke({ color: Colors.border, width: 1 });
     this.container.addChild(panel);
 
     // Settings items
@@ -61,22 +56,14 @@ export class SettingsScreen implements Screen {
       const itemY = panelY + 50 + index * 65;
       
       // Label
-      const labelStyle = new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 18,
-        fill: 0xcccccc,
-      });
+      const labelStyle = modifyStyle(TextStyles.subheading, { fill: Colors.textSecondary });
       const label = new Text({ text: setting.label, style: labelStyle });
       label.x = panelX + 30;
       label.y = itemY;
       this.container.addChild(label);
 
       // Value/Control
-      const valueStyle = new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 16,
-        fill: 0xff6b35,
-      });
+      const valueStyle = modifyStyle(TextStyles.button, { fontSize: 16, fill: Colors.primary });
       const value = new Text({ text: setting.value, style: valueStyle });
       value.anchor.set(1, 0);
       value.x = panelX + panelWidth - 30;
@@ -107,18 +94,13 @@ export class SettingsScreen implements Screen {
 
     const bg = new Graphics();
     bg.roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 6);
-    bg.fill({ color: 0x1a1a2e });
-    bg.stroke({ color: 0xff6b35, width: 2 });
+    bg.fill({ color: Colors.panelHover });
+    bg.stroke({ color: Colors.primary, width: 2 });
     button.addChild(bg);
 
     const text = new Text({
       text: '← Back',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 18,
-        fontWeight: 'bold',
-        fill: 0xffffff,
-      }),
+      style: modifyStyle(TextStyles.button, { fontSize: 18 }),
     });
     text.anchor.set(0.5);
     button.addChild(text);
@@ -130,14 +112,14 @@ export class SettingsScreen implements Screen {
       bg.clear();
       bg.roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 6);
       bg.fill({ color: 0x2a2a4e });
-      bg.stroke({ color: 0xff8c5a, width: 2 });
+      bg.stroke({ color: Colors.primaryHover, width: 2 });
     });
 
     button.on('pointerout', () => {
       bg.clear();
       bg.roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 6);
-      bg.fill({ color: 0x1a1a2e });
-      bg.stroke({ color: 0xff6b35, width: 2 });
+      bg.fill({ color: Colors.panelHover });
+      bg.stroke({ color: Colors.primary, width: 2 });
     });
 
     button.on('pointerdown', () => {

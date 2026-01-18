@@ -1,5 +1,6 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Screen, Game } from '../core/Game';
+import { Colors, TextStyles, modifyStyle } from '../core/Theme';
 
 export class ResultsScreen implements Screen {
   public container: Container;
@@ -20,23 +21,18 @@ export class ResultsScreen implements Screen {
     // Background
     const bg = new Graphics();
     bg.rect(0, 0, width, height);
-    bg.fill({ color: 0x0a0a0a });
+    bg.fill({ color: Colors.background });
     this.container.addChild(bg);
 
     // Success banner
     const banner = new Graphics();
     banner.rect(0, 60, width, 80);
-    banner.fill({ color: 0x1a3a1a });
+    banner.fill({ color: Colors.successDark });
     this.container.addChild(banner);
 
     const successText = new Text({
       text: '✓ TEST SUCCESSFUL',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 32,
-        fontWeight: 'bold',
-        fill: 0x00ff88,
-      }),
+      style: modifyStyle(TextStyles.screenTitle, { fontSize: 32, fill: Colors.success }),
     });
     successText.anchor.set(0.5);
     successText.x = width / 2;
@@ -51,19 +47,14 @@ export class ResultsScreen implements Screen {
 
     const panel = new Graphics();
     panel.roundRect(panelX, panelY, panelWidth, panelHeight, 10);
-    panel.fill({ color: 0x111118 });
-    panel.stroke({ color: 0x2a2a3a, width: 1 });
+    panel.fill({ color: Colors.panel });
+    panel.stroke({ color: Colors.border, width: 1 });
     this.container.addChild(panel);
 
     // Objectives completion
     const objectivesTitle = new Text({
       text: 'OBJECTIVES',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 14,
-        fill: 0x888888,
-        letterSpacing: 2,
-      }),
+      style: TextStyles.panelLabel,
     });
     objectivesTitle.x = panelX + 30;
     objectivesTitle.y = panelY + 20;
@@ -81,11 +72,7 @@ export class ResultsScreen implements Screen {
       // Check mark or X
       const icon = new Text({
         text: obj.achieved ? '✓' : '✗',
-        style: new TextStyle({
-          fontFamily: 'Arial, sans-serif',
-          fontSize: 20,
-          fill: obj.achieved ? 0x00ff88 : 0xff4444,
-        }),
+        style: modifyStyle(TextStyles.button, { fontSize: 20, fill: obj.achieved ? Colors.success : Colors.error }),
       });
       icon.x = panelX + 30;
       icon.y = y;
@@ -94,11 +81,7 @@ export class ResultsScreen implements Screen {
       // Objective text
       const text = new Text({
         text: obj.text,
-        style: new TextStyle({
-          fontFamily: 'Arial, sans-serif',
-          fontSize: 16,
-          fill: obj.achieved ? 0xcccccc : 0x666666,
-        }),
+        style: modifyStyle(TextStyles.body, { fontSize: 16, fill: obj.achieved ? Colors.textSecondary : Colors.textDark }),
       });
       text.x = panelX + 60;
       text.y = y + 2;
@@ -107,11 +90,7 @@ export class ResultsScreen implements Screen {
       // Value
       const value = new Text({
         text: obj.value,
-        style: new TextStyle({
-          fontFamily: 'Arial, sans-serif',
-          fontSize: 14,
-          fill: obj.achieved ? 0x00ff88 : 0xff4444,
-        }),
+        style: modifyStyle(TextStyles.body, { fill: obj.achieved ? Colors.success : Colors.error }),
       });
       value.anchor.set(1, 0);
       value.x = panelX + panelWidth - 30;
@@ -123,18 +102,13 @@ export class ResultsScreen implements Screen {
     const divider = new Graphics();
     divider.moveTo(panelX + 30, panelY + 180);
     divider.lineTo(panelX + panelWidth - 30, panelY + 180);
-    divider.stroke({ color: 0x2a2a3a, width: 1 });
+    divider.stroke({ color: Colors.border, width: 1 });
     this.container.addChild(divider);
 
     // Performance metrics
     const metricsTitle = new Text({
       text: 'PERFORMANCE SUMMARY',
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 14,
-        fill: 0x888888,
-        letterSpacing: 2,
-      }),
+      style: TextStyles.panelLabel,
     });
     metricsTitle.x = panelX + 30;
     metricsTitle.y = panelY + 200;
@@ -158,11 +132,7 @@ export class ResultsScreen implements Screen {
 
       const label = new Text({
         text: metric.label,
-        style: new TextStyle({
-          fontFamily: 'Arial, sans-serif',
-          fontSize: 12,
-          fill: 0x666666,
-        }),
+        style: modifyStyle(TextStyles.labelSmall, { fill: Colors.textDark }),
       });
       label.x = x;
       label.y = y;
@@ -170,12 +140,7 @@ export class ResultsScreen implements Screen {
 
       const value = new Text({
         text: metric.value,
-        style: new TextStyle({
-          fontFamily: 'Arial, sans-serif',
-          fontSize: 18,
-          fontWeight: 'bold',
-          fill: 0xffffff,
-        }),
+        style: modifyStyle(TextStyles.subheading, { fill: Colors.textPrimary }),
       });
       value.x = x;
       value.y = y + 18;
@@ -204,20 +169,19 @@ export class ResultsScreen implements Screen {
     const bg = new Graphics();
     bg.roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 6);
     if (primary) {
-      bg.fill({ color: 0xff6b35 });
+      bg.fill({ color: Colors.primary });
     } else {
-      bg.fill({ color: 0x1a1a2e });
-      bg.stroke({ color: 0x444444, width: 1 });
+      bg.fill({ color: Colors.panelHover });
+      bg.stroke({ color: Colors.borderHover, width: 1 });
     }
     button.addChild(bg);
 
     const text = new Text({
       text: label,
-      style: new TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 16,
+      style: modifyStyle(TextStyles.button, { 
+        fontSize: 16, 
         fontWeight: primary ? 'bold' : 'normal',
-        fill: primary ? 0xffffff : 0xaaaaaa,
+        fill: primary ? Colors.textPrimary : 0xaaaaaa 
       }),
     });
     text.anchor.set(0.5);

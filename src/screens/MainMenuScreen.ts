@@ -1,5 +1,6 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Screen, Game, ScreenName } from '../core/Game';
+import { Colors, TextStyles, modifyStyle } from '../core/Theme';
 
 interface MenuButton {
   label: string;
@@ -27,16 +28,11 @@ export class MainMenuScreen implements Screen {
     // Background
     const bg = new Graphics();
     bg.rect(0, 0, width, height);
-    bg.fill({ color: 0x0a0a0a });
+    bg.fill({ color: Colors.background });
     this.container.addChild(bg);
 
     // Title
-    const titleStyle = new TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 42,
-      fontWeight: 'bold',
-      fill: 0xffffff,
-    });
+    const titleStyle = modifyStyle(TextStyles.title, { fontSize: 42 });
     const title = new Text({ text: 'ROCKET ENGINE SIMULATOR', style: titleStyle });
     title.anchor.set(0.5, 0);
     title.x = width / 2;
@@ -44,15 +40,9 @@ export class MainMenuScreen implements Screen {
     this.container.addChild(title);
 
     // Subtitle
-    const subtitleStyle = new TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 16,
-      fill: 0x888888,
-      fontStyle: 'italic',
-    });
     const subtitle = new Text({ 
       text: 'Join the scrappy startup racing to the stars', 
-      style: subtitleStyle 
+      style: TextStyles.quote 
     });
     subtitle.anchor.set(0.5, 0);
     subtitle.x = width / 2;
@@ -84,11 +74,7 @@ export class MainMenuScreen implements Screen {
     });
 
     // Version text
-    const versionStyle = new TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 12,
-      fill: 0x444444,
-    });
+    const versionStyle = modifyStyle(TextStyles.labelSmall, { fill: Colors.textDisabled });
     const version = new Text({ text: 'v0.1.0 - MVP', style: versionStyle });
     version.anchor.set(0, 1);
     version.x = 20;
@@ -120,16 +106,14 @@ export class MainMenuScreen implements Screen {
     // Button background
     const bg = new Graphics();
     bg.roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
-    bg.fill({ color: enabled ? 0x1a1a2e : 0x111111 });
-    bg.stroke({ color: enabled ? 0xff6b35 : 0x333333, width: 2 });
+    bg.fill({ color: enabled ? Colors.panelHover : 0x111111 });
+    bg.stroke({ color: enabled ? Colors.primary : 0x333333, width: 2 });
     button.addChild(bg);
 
     // Button text
-    const textStyle = new TextStyle({
-      fontFamily: 'Arial, sans-serif',
+    const textStyle = modifyStyle(TextStyles.button, { 
       fontSize: 20,
-      fontWeight: 'bold',
-      fill: enabled ? 0xffffff : 0x555555,
+      fill: enabled ? Colors.textPrimary : Colors.textDark 
     });
     const text = new Text({ text: label, style: textStyle });
     text.anchor.set(0.5);
@@ -143,14 +127,14 @@ export class MainMenuScreen implements Screen {
         bg.clear();
         bg.roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
         bg.fill({ color: 0x2a2a4e });
-        bg.stroke({ color: 0xff8c5a, width: 2 });
+        bg.stroke({ color: Colors.primaryHover, width: 2 });
       });
 
       button.on('pointerout', () => {
         bg.clear();
         bg.roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
-        bg.fill({ color: 0x1a1a2e });
-        bg.stroke({ color: 0xff6b35, width: 2 });
+        bg.fill({ color: Colors.panelHover });
+        bg.stroke({ color: Colors.primary, width: 2 });
       });
 
       button.on('pointerdown', () => {
