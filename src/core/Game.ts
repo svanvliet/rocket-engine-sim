@@ -28,6 +28,7 @@ export class Game {
   private screens: Map<ScreenName, Screen> = new Map();
   private currentScreen: ScreenName | null = null;
   private static instance: Game;
+  private isNavigating = false;
 
   private constructor() {
     this.app = new Application();
@@ -56,6 +57,13 @@ export class Game {
 
     // Handle resize
     window.addEventListener('resize', () => this.onResize());
+
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', (event) => {
+      if (event.state?.screen) {
+        this.navigateToScreen(event.state.screen, false);
+      }
+    });
   }
 
   private onResize(): void {
@@ -66,23 +74,39 @@ export class Game {
     this.screens.set(name, screen);
   }
 
-  public async switchScreen(name: ScreenName): Promise<void> {
-    // Hide current screen
-    if (this.currentScreen) {
-      const current = this.screens.get(this.currentScreen);
-      if (current) {
-        current.hide();
-        this.app.stage.removeChild(current.container);
-      }
-    }
+  public async switchScreen(name: ScreenName, pushHistory = true): Promise<void> {
+    await this.navigateToScreen(name, pushHistory);
+  }
 
-    // Show new screen
-    const next = this.screens.get(name);
-    if (next) {
-      await next.init();
-      this.app.stage.addChild(next.container);
-      next.show();
-      this.currentScreen = name;
+  private async navigateToScreen(name: ScreenName, pushHistory: boolean): Promise<void> {
+    if (this.isNavigating) return;
+    this.isNavigating = true;
+
+    try {
+      // Hide current screen
+      if (this.currentScreen) {
+        const current = this.screens.get(this.currentScreen);
+        if (current) {
+          current.hide();
+          this.app.stage.removeChild(current.container);
+        }
+      }
+
+      // Show new screen
+      const next = this.screens.get(name);
+      if (next) {
+        await next.init();
+        this.app.stage.addChild(next.container);
+        next.show();
+        this.currentScreen = name;
+
+        // Update browser history
+        if (pushHistory) {
+          history.pushState({ screen: name }, '', `#${name}`);
+        }
+      }
+    } finally {
+      this.isNavigating = false;
     }
   }
 
