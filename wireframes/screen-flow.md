@@ -1,3 +1,4 @@
+```mermaid
 flowchart TD
     Splash --> MainMenu
 
@@ -31,3 +32,4 @@ flowchart TD
     Sandbox --> Design
 
     Settings --> MainMenu
+```
