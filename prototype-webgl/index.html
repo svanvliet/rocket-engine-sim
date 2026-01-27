@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rocket Engine Test Fire - 3D WebGL Prototype</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a1628;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 1200px;
+            height: 750px;
+            background: linear-gradient(180deg, #1a3a5c 0%, #0f2847 50%, #0a1f3a 100%);
+            border: 4px solid #3a6a9a;
+            border-radius: 12px;
+            box-shadow: 
+                inset 0 0 100px rgba(100, 150, 200, 0.1),
+                0 0 40px rgba(50, 100, 150, 0.3);
+            overflow: hidden;
+        }
+        
+        #canvas-container {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            height: 600px;
+            z-index: 5;
+        }
+        
+        #engine-canvas {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        
+        #engine-canvas:active {
+            cursor: grabbing;
+        }
+        
+        .rotation-hint {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(168, 212, 255, 0.6);
+            font-size: 11px;
+            pointer-events: none;
+        }
+        
+        /* Header */
+        .header {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 10;
+        }
+        
+        .header h1 {
+            color: #e8f4ff;
+            font-size: 32px;
+            font-weight: bold;
+            text-shadow: 0 2px 10px rgba(0, 100, 200, 0.5);
+            letter-spacing: 3px;
+        }
+        
+        .countdown {
+            color: #ffd700;
+            font-size: 24px;
+            margin-top: 5px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+        
+        /* Left Panel - Graphs */
+        .left-panel {
+            position: absolute;
+            left: 20px;
+            top: 100px;
+            width: 280px;
+            z-index: 10;
+        }
+        
+        .graph-container {
+            background: rgba(20, 50, 80, 0.8);
+            border: 2px solid #3a6a9a;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .graph-title {
+            color: #a8d4ff;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .graph-canvas {
+            background: rgba(10, 30, 50, 0.8);
+            border: 1px solid #2a5a8a;
+            border-radius: 4px;
+        }
+        
+        /* Right Panel - Stats */
+        .right-panel {
+            position: absolute;
+            right: 20px;
+            top: 100px;
+            width: 260px;
+            z-index: 10;
+        }
+        
+        .stats-container {
+            background: rgba(20, 50, 80, 0.8);
+            border: 2px solid #3a6a9a;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .stats-title {
+            color: #a8d4ff;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #3a6a9a;
+            padding-bottom: 8px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            color: #e8f4ff;
+            font-size: 16px;
+        }
+        
+        .stat-label {
+            color: #8ab4d8;
+        }
+        
+        .stat-value {
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .stat-value.success {
+            color: #4ade80;
+        }
+        
+        .stat-value.warning {
+            color: #fbbf24;
+        }
+        
+        .check-mark {
+            color: #4ade80;
+            margin-left: 5px;
+        }
+        
+        /* Control Panel */
+        .control-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 4;
+        }
+        
+        .btn {
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-fire {
+            background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+        }
+        
+        .btn-fire:hover {
+            background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
+        }
+        
+        .btn-fire:disabled {
+            background: linear-gradient(180deg, #6b7280 0%, #4b5563 100%);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        .btn-abort {
+            background: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+        }
+        
+        .btn-abort:hover {
+            background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+            transform: translateY(-2px);
+        }
+        
+        .btn-abort:disabled {
+            background: linear-gradient(180deg, #6b7280 0%, #4b5563 100%);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        /* Status indicator */
+        .status-indicator {
+            position: absolute;
+            top: 55px;
+            right: 20px;
+            padding: 5px 20px;
+            background: rgba(20, 50, 80, 0.9);
+            border: 1px solid #3a6a9a;
+            border-radius: 20px;
+            color: #a8d4ff;
+            font-size: 12px;
+            z-index: 10;
+        }
+        
+        .status-indicator.running {
+            background: rgba(34, 197, 94, 0.3);
+            border-color: #22c55e;
+            color: #4ade80;
+        }
+        
+        /* Propellant Tanks */
+        .tanks-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .tank {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .tank-label {
+            color: #a8d4ff;
+            font-size: 11px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        .tank-visual {
+            position: relative;
+            width: 100%;
+            height: 120px;
+            background: rgba(10, 30, 50, 0.8);
+            border: 2px solid #3a6a9a;
+            border-radius: 8px 8px 20px 20px;
+            overflow: hidden;
+        }
+        
+        .tank-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            transition: height 0.1s linear;
+        }
+        
+        .fuel-fill {
+            background: linear-gradient(180deg, 
+                rgba(255, 200, 150, 0.9) 0%, 
+                rgba(255, 160, 100, 0.95) 50%,
+                rgba(230, 130, 70, 1) 100%);
+            box-shadow: 
+                inset 0 0 20px rgba(255, 150, 50, 0.5),
+                0 0 10px rgba(255, 150, 50, 0.3);
+        }
+        
+        .oxidizer-fill {
+            background: linear-gradient(180deg, 
+                rgba(200, 230, 255, 0.9) 0%, 
+                rgba(150, 200, 255, 0.95) 50%,
+                rgba(100, 170, 255, 1) 100%);
+            box-shadow: 
+                inset 0 0 20px rgba(150, 200, 255, 0.5),
+                0 0 10px rgba(150, 200, 255, 0.3);
+        }
+        
+        .tank-level {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            z-index: 1;
+        }
+        
+        .tank-amount {
+            color: #8ab4d8;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+        
+        .tank-fill.low {
+            animation: tankWarning 0.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes tankWarning {
+            from { opacity: 0.8; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>TEST FIRING...</h1>
+            <div class="countdown" id="countdown">Ready</div>
+        </div>
+        
+        <div class="status-indicator" id="status">STANDBY</div>
+        
+        <!-- 3D Engine Canvas -->
+        <div id="canvas-container">
+            <canvas id="engine-canvas"></canvas>
+            <div class="rotation-hint">🖱️ Drag to rotate • Scroll to zoom</div>
+        </div>
+        
+        <!-- Left Panel - Graphs -->
+        <div class="left-panel">
+            <div class="graph-container">
+                <div class="graph-title">Thrust</div>
+                <canvas class="graph-canvas" id="thrust-graph" width="256" height="80"></canvas>
+            </div>
+            <div class="graph-container">
+                <div class="graph-title">Chamber Pressure</div>
+                <canvas class="graph-canvas" id="pressure-graph" width="256" height="80"></canvas>
+            </div>
+            <div class="graph-container">
+                <div class="graph-title">Temperature</div>
+                <canvas class="graph-canvas" id="temp-graph" width="256" height="80"></canvas>
+            </div>
+        </div>
+        
+        <!-- Right Panel - Stats -->
+        <div class="right-panel">
+            <div class="stats-container">
+                <div class="stats-title">Goals</div>
+                <div class="stat-row">
+                    <span class="stat-label">Thrust:</span>
+                    <span class="stat-value" id="goal-thrust">102 kN<span class="check-mark" id="thrust-check" style="display:none">✓</span></span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Isp:</span>
+                    <span class="stat-value" id="goal-isp">290 s</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Pressure:</span>
+                    <span class="stat-value" id="goal-pressure">25 MPa</span>
+                </div>
+            </div>
+            
+            <div class="stats-container">
+                <div class="stats-title">Current Test Readings</div>
+                <div class="stat-row">
+                    <span class="stat-label">🔥 Thrust:</span>
+                    <span class="stat-value warning" id="current-thrust">0 kN</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">⚡ Isp:</span>
+                    <span class="stat-value warning" id="current-isp">0 s</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">💨 Pressure:</span>
+                    <span class="stat-value warning" id="current-pressure">0 MPa</span>
+                </div>
+            </div>
+            
+            <div class="stats-container">
+                <div class="stats-title">Propellant Tanks</div>
+                <div class="tanks-container">
+                    <div class="tank">
+                        <div class="tank-label">RP-1 (Fuel)</div>
+                        <div class="tank-visual">
+                            <div class="tank-fill fuel-fill" id="fuel-fill"></div>
+                            <div class="tank-level" id="fuel-level">100%</div>
+                        </div>
+                        <div class="tank-amount" id="fuel-amount">850 kg</div>
+                    </div>
+                    <div class="tank">
+                        <div class="tank-label">LOX (Oxidizer)</div>
+                        <div class="tank-visual">
+                            <div class="tank-fill oxidizer-fill" id="oxidizer-fill"></div>
+                            <div class="tank-level" id="oxidizer-level">100%</div>
+                        </div>
+                        <div class="tank-amount" id="oxidizer-amount">2125 kg</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="btn btn-fire" id="fire-btn">🚀 Start Test</button>
+            <button class="btn btn-abort" id="abort-btn" disabled>Abort Test</button>
+        </div>
+    </div>
+    
+    <!-- Three.js ES Module -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="engine-3d.js"></script>
+</body>
+</html>
