@@ -3,6 +3,7 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 class RocketEngineSimulator3D {
     constructor() {
@@ -168,7 +169,7 @@ class RocketEngineSimulator3D {
                 propellant: 'rp1-lox'
             },
             'raptor': {
-                name: 'SpaceX Raptor 2',
+                name: 'SpaceX Raptor 3',
                 desc: 'Starship - Methane/LOX, 2,260 kN thrust, full-flow staged',
                 chamberRadius: 0.40,
                 chamberLength: 1.0,
@@ -181,7 +182,12 @@ class RocketEngineSimulator3D {
                 hasGimbal: true,
                 hasPreburners: true,
                 color: 0x444444,
-                propellant: 'methane-lox'
+                propellant: 'methane-lox',
+                // External 3D model (CC Attribution - VoitAa on Sketchfab)
+                externalModel: 'models/spacex_starship_raptor_3_engine.glb',
+                modelScale: 1.8,
+                modelRotation: { x: 0, y: 0, z: 0 },
+                modelOffset: { x: 0, y: 0, z: 0 }
             },
             'rs25': {
                 name: 'RS-25 (SSME)',
@@ -249,19 +255,29 @@ class RocketEngineSimulator3D {
     }
     
     setupLights() {
-        // Ambient light
-        const ambient = new THREE.AmbientLight(0x404060, 0.5);
+        // Ambient light - bright for external models
+        const ambient = new THREE.AmbientLight(0x808090, 1.2);
         this.scene.add(ambient);
         
-        // Main directional light
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        // Main directional light - strong key light
+        const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
         dirLight.position.set(5, 5, 5);
         this.scene.add(dirLight);
         
-        // Fill light
-        const fillLight = new THREE.DirectionalLight(0x4080ff, 0.3);
-        fillLight.position.set(-3, 0, -3);
+        // Fill light from opposite side
+        const fillLight = new THREE.DirectionalLight(0x6090ff, 0.8);
+        fillLight.position.set(-5, 2, -3);
         this.scene.add(fillLight);
+        
+        // Front light to illuminate details
+        const frontLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        frontLight.position.set(0, 2, 6);
+        this.scene.add(frontLight);
+        
+        // Bottom rim light to show nozzle
+        const rimLight = new THREE.DirectionalLight(0xffffee, 0.6);
+        rimLight.position.set(0, -3, 2);
+        this.scene.add(rimLight);
         
         // Flame light (dynamic)
         this.flameLight = new THREE.PointLight(0xff6600, 0, 5);
@@ -280,6 +296,107 @@ class RocketEngineSimulator3D {
         const geo = this.engineModels[model];
         this.engineGeometry = { ...geo };
         
+        // Check if this engine uses an external 3D model
+        if (geo.externalModel) {
+            this.loadExternalModel(geo);
+            return;
+        }
+        
+        this.buildProceduralEngine(geo);
+    }
+    
+    loadExternalModel(geo) {
+        const loader = new GLTFLoader();
+        
+        loader.load(
+            geo.externalModel,
+            (gltf) => {
+                const engineGroup = new THREE.Group();
+                const model = gltf.scene;
+                
+                // Apply scale
+                const scale = geo.modelScale || 1.0;
+                model.scale.set(scale, scale, scale);
+                
+                // Apply rotation
+                if (geo.modelRotation) {
+                    model.rotation.x = geo.modelRotation.x || 0;
+                    model.rotation.y = geo.modelRotation.y || 0;
+                    model.rotation.z = geo.modelRotation.z || 0;
+                }
+                
+                // Apply offset
+                if (geo.modelOffset) {
+                    model.position.x = geo.modelOffset.x || 0;
+                    model.position.y = geo.modelOffset.y || 0;
+                    model.position.z = geo.modelOffset.z || 0;
+                }
+                
+                // Brighten materials for better visibility
+                model.traverse((child) => {
+                    if (child.isMesh && child.material) {
+                        const mat = child.material;
+                        // Reduce metalness and increase roughness for better diffuse lighting
+                        if (mat.metalness !== undefined) {
+                            mat.metalness = Math.min(mat.metalness, 0.4);
+                        }
+                        if (mat.roughness !== undefined) {
+                            mat.roughness = Math.max(mat.roughness, 0.5);
+                        }
+                        // Brighten dark colors
+                        if (mat.color) {
+                            const hsl = {};
+                            mat.color.getHSL(hsl);
+                            if (hsl.l < 0.3) {
+                                mat.color.setHSL(hsl.h, hsl.s * 0.5, Math.max(hsl.l, 0.35));
+                            }
+                        }
+                        mat.needsUpdate = true;
+                    }
+                });
+                
+                // Calculate bounding box to find nozzle exit position
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+                
+                // Center the model horizontally and vertically
+                model.position.x -= center.x;
+                model.position.y -= center.y;
+                model.position.z -= center.z;
+                
+                // Recalculate bounding box after centering
+                const newBox = new THREE.Box3().setFromObject(model);
+                
+                // Set nozzle exit at bottom of centered model
+                this.nozzleExitY = newBox.min.y;
+                // Estimate nozzle radius as ~40% of model width (typical for rockets)
+                this.nozzleExitRadius = Math.min(size.x, size.z) * 0.4;
+                
+                engineGroup.add(model);
+                
+                this.engine = engineGroup;
+                this.scene.add(this.engine);
+                
+                console.log(`Loaded external model: ${geo.name}`);
+                console.log(`  Nozzle exit Y: ${this.nozzleExitY.toFixed(2)}, Radius: ${this.nozzleExitRadius.toFixed(2)}`);
+            },
+            (progress) => {
+                // Loading progress (total may be undefined for some servers)
+                if (progress.total) {
+                    const percent = (progress.loaded / progress.total * 100).toFixed(0);
+                    console.log(`Loading ${geo.name}: ${percent}%`);
+                }
+            },
+            (error) => {
+                console.error(`Failed to load ${geo.externalModel}:`, error);
+                // Fallback to procedural engine
+                this.buildProceduralEngine(geo);
+            }
+        );
+    }
+    
+    buildProceduralEngine(geo) {
         const engineGroup = new THREE.Group();
         
         // Scale factor to normalize different engine sizes for display
