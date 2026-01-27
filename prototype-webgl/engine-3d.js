@@ -134,6 +134,91 @@ class RocketEngineSimulator3D {
             }
         };
         
+        // Engine model definitions with real-world proportions
+        this.engineModel = 'generic';
+        this.engineModels = {
+            'generic': {
+                name: 'Generic Engine',
+                desc: 'Simple engine for learning fundamentals',
+                // Proportions (normalized, will be scaled)
+                chamberRadius: 0.35,
+                chamberLength: 0.8,
+                throatRadius: 0.18,
+                nozzleExitRadius: 0.70,
+                nozzleLength: 1.2,
+                totalLength: 2.5,
+                expansionRatio: 15,
+                hasTurbopump: true,
+                hasGimbal: false,
+                color: 0x8899aa
+            },
+            'merlin': {
+                name: 'SpaceX Merlin 1D',
+                desc: 'Falcon 9 first stage - RP-1/LOX, 845 kN thrust',
+                chamberRadius: 0.28,
+                chamberLength: 0.6,
+                throatRadius: 0.15,
+                nozzleExitRadius: 0.46,  // 0.92m / 2 scaled
+                nozzleLength: 0.9,
+                totalLength: 2.0,
+                expansionRatio: 16,
+                hasTurbopump: true,
+                hasGimbal: true,
+                color: 0x666666,  // Dark gray/black
+                propellant: 'rp1-lox'
+            },
+            'raptor': {
+                name: 'SpaceX Raptor 2',
+                desc: 'Starship - Methane/LOX, 2,260 kN thrust, full-flow staged',
+                chamberRadius: 0.40,
+                chamberLength: 1.0,
+                throatRadius: 0.20,
+                nozzleExitRadius: 0.65,  // 1.3m / 2 scaled
+                nozzleLength: 1.4,
+                totalLength: 3.1,
+                expansionRatio: 34,
+                hasTurbopump: true,
+                hasGimbal: true,
+                hasPreburners: true,
+                color: 0x444444,
+                propellant: 'methane-lox'
+            },
+            'rs25': {
+                name: 'RS-25 (SSME)',
+                desc: 'Space Shuttle Main Engine - LH2/LOX, 2,279 kN, reusable',
+                chamberRadius: 0.35,
+                chamberLength: 0.9,
+                throatRadius: 0.18,
+                nozzleExitRadius: 1.20,  // 2.4m / 2 scaled
+                nozzleLength: 2.0,
+                totalLength: 4.3,
+                expansionRatio: 69,
+                hasTurbopump: true,
+                hasGimbal: true,
+                hasPreburners: true,
+                color: 0xaa8866,  // Copper/bronze color
+                propellant: 'lh2-lox'
+            },
+            'f1': {
+                name: 'Rocketdyne F-1',
+                desc: 'Saturn V first stage - RP-1/LOX, 6,770 kN, largest single-chamber',
+                chamberRadius: 0.55,
+                chamberLength: 1.2,
+                throatRadius: 0.30,
+                nozzleExitRadius: 1.85,  // 3.7m / 2 scaled
+                nozzleLength: 2.8,
+                totalLength: 5.6,
+                expansionRatio: 16,
+                hasTurbopump: true,
+                hasGimbal: true,
+                color: 0x888888,
+                propellant: 'rp1-lox'
+            }
+        };
+        
+        // Current engine geometry (updated when model changes)
+        this.engineGeometry = { ...this.engineModels['generic'] };
+        
         // Particle system
         this.particles = [];
         this.particleSystem = null;
@@ -141,6 +226,9 @@ class RocketEngineSimulator3D {
         
         // Shock diamond meshes
         this.shockDiamonds = [];
+        
+        // Engine group (for swapping models)
+        this.engine = null;
         
         // Engine parts for glow effect
         this.nozzleInner = null;
@@ -153,7 +241,7 @@ class RocketEngineSimulator3D {
         this.setupParticleSystem();
         this.setupShockDiamonds();
         this.setupControls();
-        this.setupExhaustModeSelector();
+        this.setupModeSelectors();
         
         // Start animation
         this.animate = this.animate.bind(this);
@@ -181,12 +269,25 @@ class RocketEngineSimulator3D {
         this.scene.add(this.flameLight);
     }
     
-    buildEngine() {
+    buildEngine(modelName = null) {
+        // Remove existing engine if rebuilding
+        if (this.engine) {
+            this.scene.remove(this.engine);
+        }
+        
+        // Get engine geometry parameters
+        const model = modelName || this.engineModel;
+        const geo = this.engineModels[model];
+        this.engineGeometry = { ...geo };
+        
         const engineGroup = new THREE.Group();
+        
+        // Scale factor to normalize different engine sizes for display
+        const scale = 1.0 / (geo.totalLength / 2.5);
         
         // Materials
         const metalMaterial = new THREE.MeshStandardMaterial({
-            color: 0x8899aa,
+            color: geo.color || 0x8899aa,
             metalness: 0.8,
             roughness: 0.3
         });
@@ -203,49 +304,90 @@ class RocketEngineSimulator3D {
             roughness: 0.2
         });
         
+        // Scaled dimensions
+        const chamberRadius = geo.chamberRadius * scale;
+        const chamberLength = geo.chamberLength * scale;
+        const throatRadius = geo.throatRadius * scale;
+        const nozzleExitRadius = geo.nozzleExitRadius * scale;
+        const nozzleLength = geo.nozzleLength * scale;
+        
+        // Calculate Y positions
+        const chamberTop = 0.6;
+        const chamberBottom = chamberTop - chamberLength;
+        const throatY = chamberBottom - 0.1;
+        const nozzleStartY = throatY - 0.1;
+        const nozzleEndY = nozzleStartY - nozzleLength;
+        
+        // Store for plume calculations (unscaled for emission)
+        this.nozzleExitY = nozzleEndY;
+        this.nozzleExitRadius = nozzleExitRadius;
+        
         // === TURBOPUMP (top) ===
-        const turbopumpBody = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.25, 0.25, 0.3, 32),
-            metalMaterial
-        );
-        turbopumpBody.position.y = 1.4;
-        engineGroup.add(turbopumpBody);
-        
-        // Turbopump cap
-        const turbopumpCap = new THREE.Mesh(
-            new THREE.SphereGeometry(0.25, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2),
-            darkMetalMaterial
-        );
-        turbopumpCap.position.y = 1.55;
-        engineGroup.add(turbopumpCap);
-        
-        // Turbopump bands
-        for (let i = 0; i < 2; i++) {
-            const band = new THREE.Mesh(
-                new THREE.TorusGeometry(0.26, 0.02, 8, 32),
+        if (geo.hasTurbopump) {
+            const turbopumpRadius = chamberRadius * 0.7;
+            const turbopumpBody = new THREE.Mesh(
+                new THREE.CylinderGeometry(turbopumpRadius, turbopumpRadius, 0.3, 32),
+                metalMaterial
+            );
+            turbopumpBody.position.y = chamberTop + 0.5;
+            engineGroup.add(turbopumpBody);
+            
+            // Turbopump cap
+            const turbopumpCap = new THREE.Mesh(
+                new THREE.SphereGeometry(turbopumpRadius, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2),
                 darkMetalMaterial
             );
-            band.rotation.x = Math.PI / 2;
-            band.position.y = 1.32 + i * 0.15;
-            engineGroup.add(band);
+            turbopumpCap.position.y = chamberTop + 0.65;
+            engineGroup.add(turbopumpCap);
+            
+            // Turbopump bands
+            for (let i = 0; i < 2; i++) {
+                const band = new THREE.Mesh(
+                    new THREE.TorusGeometry(turbopumpRadius + 0.01, 0.02, 8, 32),
+                    darkMetalMaterial
+                );
+                band.rotation.x = Math.PI / 2;
+                band.position.y = chamberTop + 0.42 + i * 0.15;
+                engineGroup.add(band);
+            }
+            
+            // Pre-burners for staged combustion engines
+            if (geo.hasPreburners) {
+                const preburnerMat = new THREE.MeshStandardMaterial({
+                    color: 0x997755,
+                    metalness: 0.8,
+                    roughness: 0.3
+                });
+                for (let side = -1; side <= 1; side += 2) {
+                    const preburner = new THREE.Mesh(
+                        new THREE.CylinderGeometry(turbopumpRadius * 0.4, turbopumpRadius * 0.5, 0.25, 16),
+                        preburnerMat
+                    );
+                    preburner.position.set(side * (turbopumpRadius + 0.15), chamberTop + 0.45, 0);
+                    engineGroup.add(preburner);
+                }
+            }
         }
         
         // === PROPELLANT LINES ===
         const pipeRadius = 0.04;
-        
-        // Left pipe (fuel - slightly reddish tint)
         const fuelPipeMaterial = new THREE.MeshStandardMaterial({
             color: 0x998888,
             metalness: 0.7,
             roughness: 0.3
         });
+        const oxPipeMaterial = new THREE.MeshStandardMaterial({
+            color: 0x8888aa,
+            metalness: 0.7,
+            roughness: 0.3
+        });
         
-        // Create curved pipe using TubeGeometry
+        const pipeOffset = chamberRadius + 0.15;
         const leftPipePath = new THREE.CatmullRomCurve3([
-            new THREE.Vector3(-0.25, 1.35, 0),
-            new THREE.Vector3(-0.5, 1.35, 0),
-            new THREE.Vector3(-0.5, 0.9, 0),
-            new THREE.Vector3(-0.35, 0.7, 0)
+            new THREE.Vector3(-chamberRadius * 0.7, chamberTop + 0.45, 0),
+            new THREE.Vector3(-pipeOffset, chamberTop + 0.45, 0),
+            new THREE.Vector3(-pipeOffset, chamberTop - 0.2, 0),
+            new THREE.Vector3(-chamberRadius - 0.05, chamberTop - 0.4, 0)
         ]);
         const leftPipe = new THREE.Mesh(
             new THREE.TubeGeometry(leftPipePath, 20, pipeRadius, 8, false),
@@ -253,18 +395,11 @@ class RocketEngineSimulator3D {
         );
         engineGroup.add(leftPipe);
         
-        // Right pipe (oxidizer - slightly bluish tint)
-        const oxPipeMaterial = new THREE.MeshStandardMaterial({
-            color: 0x8888aa,
-            metalness: 0.7,
-            roughness: 0.3
-        });
-        
         const rightPipePath = new THREE.CatmullRomCurve3([
-            new THREE.Vector3(0.25, 1.35, 0),
-            new THREE.Vector3(0.5, 1.35, 0),
-            new THREE.Vector3(0.5, 0.9, 0),
-            new THREE.Vector3(0.35, 0.7, 0)
+            new THREE.Vector3(chamberRadius * 0.7, chamberTop + 0.45, 0),
+            new THREE.Vector3(pipeOffset, chamberTop + 0.45, 0),
+            new THREE.Vector3(pipeOffset, chamberTop - 0.2, 0),
+            new THREE.Vector3(chamberRadius + 0.05, chamberTop - 0.4, 0)
         ]);
         const rightPipe = new THREE.Mesh(
             new THREE.TubeGeometry(rightPipePath, 20, pipeRadius, 8, false),
@@ -272,22 +407,21 @@ class RocketEngineSimulator3D {
         );
         engineGroup.add(rightPipe);
         
-        // Valves on pipes
+        // Valves
         const valveGeom = new THREE.BoxGeometry(0.1, 0.12, 0.08);
         const leftValve = new THREE.Mesh(valveGeom, darkMetalMaterial);
-        leftValve.position.set(-0.5, 1.1, 0);
+        leftValve.position.set(-pipeOffset, chamberTop + 0.1, 0);
         engineGroup.add(leftValve);
-        
         const rightValve = new THREE.Mesh(valveGeom, darkMetalMaterial);
-        rightValve.position.set(0.5, 1.1, 0);
+        rightValve.position.set(pipeOffset, chamberTop + 0.1, 0);
         engineGroup.add(rightValve);
         
         // === INJECTOR PLATE ===
         const injector = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.38, 0.38, 0.08, 32),
+            new THREE.CylinderGeometry(chamberRadius + 0.03, chamberRadius + 0.03, 0.08, 32),
             copperMaterial
         );
-        injector.position.y = 0.6;
+        injector.position.y = chamberTop;
         engineGroup.add(injector);
         
         // Injector holes
@@ -298,32 +432,35 @@ class RocketEngineSimulator3D {
                 darkMetalMaterial
             );
             hole.position.set(
-                Math.cos(angle) * 0.25,
-                0.6,
-                Math.sin(angle) * 0.25
+                Math.cos(angle) * chamberRadius * 0.7,
+                chamberTop,
+                Math.sin(angle) * chamberRadius * 0.7
             );
             engineGroup.add(hole);
         }
         
         // === COMBUSTION CHAMBER ===
-        const chamberGeom = new THREE.CylinderGeometry(0.35, 0.4, 0.8, 32);
+        const chamberGeom = new THREE.CylinderGeometry(chamberRadius * 0.95, chamberRadius, chamberLength, 32);
         const chamber = new THREE.Mesh(chamberGeom, metalMaterial);
-        chamber.position.y = 0.15;
+        chamber.position.y = chamberTop - chamberLength / 2;
         engineGroup.add(chamber);
         
         // Chamber cooling bands
-        for (let i = 0; i < 4; i++) {
+        const numBands = Math.max(2, Math.floor(chamberLength / 0.2));
+        for (let i = 0; i < numBands; i++) {
+            const t = i / (numBands - 1);
+            const bandRadius = chamberRadius * (0.95 + t * 0.05);
             const band = new THREE.Mesh(
-                new THREE.TorusGeometry(0.36 + i * 0.01, 0.015, 8, 32),
+                new THREE.TorusGeometry(bandRadius + 0.01, 0.015, 8, 32),
                 darkMetalMaterial
             );
             band.rotation.x = Math.PI / 2;
-            band.position.y = 0.4 - i * 0.2;
+            band.position.y = chamberTop - t * chamberLength;
             engineGroup.add(band);
         }
         
-        // Chamber inner glow surface (for emission during firing)
-        const chamberInnerGeom = new THREE.CylinderGeometry(0.32, 0.37, 0.75, 32);
+        // Chamber inner glow
+        const chamberInnerGeom = new THREE.CylinderGeometry(chamberRadius * 0.85, chamberRadius * 0.9, chamberLength * 0.9, 32);
         this.chamberInner = new THREE.Mesh(
             chamberInnerGeom,
             new THREE.MeshBasicMaterial({ 
@@ -332,24 +469,23 @@ class RocketEngineSimulator3D {
                 opacity: 0 
             })
         );
-        this.chamberInner.position.y = 0.15;
+        this.chamberInner.position.y = chamberTop - chamberLength / 2;
         engineGroup.add(this.chamberInner);
         
         // === THROAT ===
-        const throatGeom = new THREE.CylinderGeometry(0.4, 0.2, 0.2, 32);
+        const throatGeom = new THREE.CylinderGeometry(chamberRadius, throatRadius, 0.15, 32);
         const throat = new THREE.Mesh(throatGeom, metalMaterial);
-        throat.position.y = -0.35;
+        throat.position.y = throatY;
         engineGroup.add(throat);
         
         // === NOZZLE (bell curve) ===
-        // Create nozzle profile for lathe geometry
         const nozzlePoints = [];
-        const nozzleSegments = 30;
+        const nozzleSegments = 40;
         for (let i = 0; i <= nozzleSegments; i++) {
             const t = i / nozzleSegments;
-            // Bell curve expansion
-            const y = -0.45 - t * 1.2;
-            const r = 0.2 + Math.pow(t, 0.7) * 0.55;
+            const y = nozzleStartY - t * nozzleLength;
+            // Bell curve: starts at throat radius, expands to exit radius
+            const r = throatRadius + Math.pow(t, 0.6) * (nozzleExitRadius - throatRadius);
             nozzlePoints.push(new THREE.Vector2(r, y));
         }
         
@@ -361,8 +497,8 @@ class RocketEngineSimulator3D {
         const nozzleInnerPoints = [];
         for (let i = 0; i <= nozzleSegments; i++) {
             const t = i / nozzleSegments;
-            const y = -0.45 - t * 1.2;
-            const r = 0.18 + Math.pow(t, 0.7) * 0.52;
+            const y = nozzleStartY - t * nozzleLength;
+            const r = (throatRadius * 0.95) + Math.pow(t, 0.6) * (nozzleExitRadius * 0.95 - throatRadius * 0.95);
             nozzleInnerPoints.push(new THREE.Vector2(r, y));
         }
         
@@ -379,25 +515,55 @@ class RocketEngineSimulator3D {
         engineGroup.add(this.nozzleInner);
         
         // Nozzle exit rim
-        const rimGeom = new THREE.TorusGeometry(0.73, 0.025, 8, 48);
+        const rimGeom = new THREE.TorusGeometry(nozzleExitRadius + 0.02, 0.025, 8, 48);
         const rim = new THREE.Mesh(rimGeom, darkMetalMaterial);
         rim.rotation.x = Math.PI / 2;
-        rim.position.y = -1.65;
+        rim.position.y = nozzleEndY;
         engineGroup.add(rim);
         
         // Nozzle bands
-        for (let i = 0; i < 4; i++) {
-            const t = i / 4;
-            const y = -0.6 - t * 0.9;
-            const r = 0.25 + Math.pow(t * 0.85, 0.7) * 0.55;
+        const numNozzleBands = Math.max(3, Math.floor(nozzleLength / 0.3));
+        for (let i = 0; i < numNozzleBands; i++) {
+            const t = i / numNozzleBands;
+            const y = nozzleStartY - t * nozzleLength;
+            const r = throatRadius + Math.pow(t, 0.6) * (nozzleExitRadius - throatRadius);
             const band = new THREE.Mesh(
-                new THREE.TorusGeometry(r, 0.012, 8, 48),
+                new THREE.TorusGeometry(r + 0.01, 0.012, 8, 48),
                 darkMetalMaterial
             );
             band.rotation.x = Math.PI / 2;
             band.position.y = y;
             engineGroup.add(band);
         }
+        
+        // === GIMBAL MOUNT ===
+        if (geo.hasGimbal) {
+            const gimbalRing = new THREE.Mesh(
+                new THREE.TorusGeometry(chamberRadius + 0.1, 0.05, 16, 32),
+                darkMetalMaterial
+            );
+            gimbalRing.rotation.x = Math.PI / 2;
+            gimbalRing.position.y = chamberBottom + 0.05;
+            engineGroup.add(gimbalRing);
+            
+            // Gimbal actuator mounts
+            for (let i = 0; i < 2; i++) {
+                const angle = i * Math.PI;
+                const mount = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.08, 0.15, 0.08),
+                    darkMetalMaterial
+                );
+                mount.position.set(
+                    Math.cos(angle) * (chamberRadius + 0.15),
+                    chamberBottom,
+                    Math.sin(angle) * (chamberRadius + 0.15)
+                );
+                engineGroup.add(mount);
+            }
+        }
+        
+        // Update flame light position
+        this.flameLight.position.y = nozzleEndY - 0.5;
         
         this.engine = engineGroup;
         this.scene.add(engineGroup);
@@ -484,9 +650,9 @@ class RocketEngineSimulator3D {
         const colors = this.particleSystem.geometry.attributes.color.array;
         const sizes = this.particleSystem.geometry.attributes.size.array;
         
-        // Nozzle exit geometry: y=-1.65, radius=0.70
-        const nozzleExitY = -1.65;
-        const nozzleExitRadius = 0.70;
+        // Use dynamic nozzle geometry from current engine model
+        const nozzleExitY = this.nozzleExitY || -1.65;
+        const nozzleExitRadius = this.nozzleExitRadius || 0.70;
         
         // Start particles at the nozzle exit, distributed across the full exit area
         const angle = Math.random() * Math.PI * 2;
@@ -540,8 +706,8 @@ class RocketEngineSimulator3D {
     
     // Get plume radius at a given Y position below nozzle exit
     getPlumeRadius(y) {
-        const nozzleExitY = -1.65;
-        const nozzleExitRadius = 0.70;
+        const nozzleExitY = this.nozzleExitY || -1.65;
+        const nozzleExitRadius = this.nozzleExitRadius || 0.70;
         
         if (y > nozzleExitY) {
             return nozzleExitRadius;
@@ -561,13 +727,45 @@ class RocketEngineSimulator3D {
         // Not adding to scene - keeping method for potential future use
     }
     
-    setupExhaustModeSelector() {
-        const selector = document.getElementById('exhaust-mode');
-        const desc = document.getElementById('exhaust-desc');
+    setupModeSelectors() {
+        // Engine model selector
+        const engineSelector = document.getElementById('engine-model');
+        const engineDesc = document.getElementById('engine-desc');
         
-        selector.addEventListener('change', (e) => {
+        engineSelector.addEventListener('change', (e) => {
+            this.engineModel = e.target.value;
+            const model = this.engineModels[this.engineModel];
+            engineDesc.textContent = model.desc;
+            
+            // Rebuild engine with new model
+            this.buildEngine(this.engineModel);
+            
+            // Auto-switch exhaust mode to match propellant if defined
+            if (model.propellant) {
+                const exhaustSelector = document.getElementById('exhaust-mode');
+                exhaustSelector.value = model.propellant;
+                this.exhaustMode = model.propellant;
+                document.getElementById('exhaust-desc').textContent = 
+                    this.exhaustModes[model.propellant].desc;
+                
+                // Update flame light color
+                const exhaustMode = this.exhaustModes[model.propellant];
+                const avgColor = [
+                    (exhaustMode.coreColor[0] + exhaustMode.midColor[0]) / 2,
+                    (exhaustMode.coreColor[1] + exhaustMode.midColor[1]) / 2,
+                    (exhaustMode.coreColor[2] + exhaustMode.midColor[2]) / 2
+                ];
+                this.flameLight.color.setRGB(avgColor[0], avgColor[1], avgColor[2]);
+            }
+        });
+        
+        // Exhaust visualization selector
+        const exhaustSelector = document.getElementById('exhaust-mode');
+        const exhaustDesc = document.getElementById('exhaust-desc');
+        
+        exhaustSelector.addEventListener('change', (e) => {
             this.exhaustMode = e.target.value;
-            desc.textContent = this.exhaustModes[this.exhaustMode].desc;
+            exhaustDesc.textContent = this.exhaustModes[this.exhaustMode].desc;
             
             // Update flame light color based on mode
             const mode = this.exhaustModes[this.exhaustMode];
