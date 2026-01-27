@@ -65,10 +65,82 @@ class RocketEngineSimulator3D {
         this.clock = new THREE.Clock();
         this.flameIntensity = 0;
         
+        // Exhaust visualization mode
+        this.exhaustMode = 'rp1-lox';
+        this.exhaustModes = {
+            'stylized': {
+                desc: 'Colorful arcade-style particles for visual impact',
+                coreColor: [1, 0.9, 0.3],
+                midColor: [1, 0.5, 0.1],
+                outerColor: [1, 0.2, 0],
+                particleSize: 0.35,
+                particleCount: 80,
+                speed: 4,
+                spread: 0.4,
+                showShockDiamonds: false,
+                glowIntensity: 1.0
+            },
+            'rp1-lox': {
+                desc: 'Kerosene fuel - orange flame with soot particles, visible shock structures',
+                coreColor: [1, 0.95, 0.8],
+                midColor: [1, 0.6, 0.2],
+                outerColor: [0.8, 0.3, 0.1],
+                sootColor: [0.2, 0.15, 0.1],
+                particleSize: 0.2,
+                particleCount: 100,
+                speed: 6,
+                spread: 0.25,
+                showShockDiamonds: true,
+                hasSoot: true,
+                glowIntensity: 0.8
+            },
+            'lh2-lox': {
+                desc: 'Hydrogen fuel - nearly invisible in daylight, faint blue shimmer',
+                coreColor: [0.9, 0.95, 1],
+                midColor: [0.7, 0.85, 1],
+                outerColor: [0.5, 0.7, 0.9],
+                particleSize: 0.12,
+                particleCount: 50,
+                speed: 8,
+                spread: 0.15,
+                showShockDiamonds: true,
+                opacity: 0.3,
+                glowIntensity: 0.3
+            },
+            'methane-lox': {
+                desc: 'Methane fuel - blue-tinged flame, cleaner burn than kerosene',
+                coreColor: [0.9, 0.95, 1],
+                midColor: [0.6, 0.7, 1],
+                outerColor: [0.3, 0.5, 0.9],
+                particleSize: 0.25,
+                particleCount: 80,
+                speed: 5,
+                spread: 0.2,
+                showShockDiamonds: true,
+                glowIntensity: 0.7
+            },
+            'shock-diamonds': {
+                desc: 'Emphasizes Mach disk shock structures in supersonic exhaust',
+                coreColor: [1, 1, 0.9],
+                midColor: [1, 0.8, 0.4],
+                outerColor: [0.8, 0.4, 0.2],
+                particleSize: 0.18,
+                particleCount: 70,
+                speed: 7,
+                spread: 0.15,
+                showShockDiamonds: true,
+                prominentShocks: true,
+                glowIntensity: 0.9
+            }
+        };
+        
         // Particle system
         this.particles = [];
         this.particleSystem = null;
-        this.maxParticles = 500;
+        this.maxParticles = 3000;
+        
+        // Shock diamond meshes
+        this.shockDiamonds = [];
         
         // Engine parts for glow effect
         this.nozzleInner = null;
@@ -79,7 +151,9 @@ class RocketEngineSimulator3D {
         this.setupLights();
         this.buildEngine();
         this.setupParticleSystem();
+        this.setupShockDiamonds();
         this.setupControls();
+        this.setupExhaustModeSelector();
         
         // Start animation
         this.animate = this.animate.bind(this);
@@ -392,71 +466,131 @@ class RocketEngineSimulator3D {
             this.particleData.push({
                 life: 0,
                 velocity: new THREE.Vector3(),
-                active: false
+                active: false,
+                isSoot: false,
+                normalizedRadius: 0,
+                angle: 0
             });
         }
         this.nextParticle = 0;
     }
     
-    emitParticle() {
+    emitParticle(isSoot = false) {
         const idx = this.nextParticle;
         this.nextParticle = (this.nextParticle + 1) % this.maxParticles;
         
+        const mode = this.exhaustModes[this.exhaustMode];
         const positions = this.particleSystem.geometry.attributes.position.array;
         const colors = this.particleSystem.geometry.attributes.color.array;
         const sizes = this.particleSystem.geometry.attributes.size.array;
         
-        // Start at nozzle exit
-        const spread = 0.3;
-        positions[idx * 3] = (Math.random() - 0.5) * spread;
-        positions[idx * 3 + 1] = -1.7;
-        positions[idx * 3 + 2] = (Math.random() - 0.5) * spread;
+        // Nozzle exit geometry: y=-1.65, radius=0.70
+        const nozzleExitY = -1.65;
+        const nozzleExitRadius = 0.70;
         
-        // Random velocity in cone shape
-        const speed = 2 + Math.random() * 3;
+        // Start particles at the nozzle exit, distributed across the full exit area
         const angle = Math.random() * Math.PI * 2;
-        const spread2 = 0.3 + Math.random() * 0.2;
+        // Use sqrt for uniform disk distribution - fills the entire exit
+        const r = Math.sqrt(Math.random()) * nozzleExitRadius;
+        
+        positions[idx * 3] = Math.cos(angle) * r;
+        positions[idx * 3 + 1] = nozzleExitY;
+        positions[idx * 3 + 2] = Math.sin(angle) * r;
+        
+        // Velocity - primarily downward with slight outward expansion
+        const speed = mode.speed * (0.8 + Math.random() * 0.4);
+        
+        // Particles near edge expand outward more than center particles
+        const normalizedR = r / nozzleExitRadius;
+        const outwardVel = normalizedR * mode.spread * 0.8;
         
         this.particleData[idx].velocity.set(
-            Math.cos(angle) * spread2,
+            Math.cos(angle) * outwardVel,
             -speed,
-            Math.sin(angle) * spread2
+            Math.sin(angle) * outwardVel
         );
         this.particleData[idx].life = 1;
         this.particleData[idx].active = true;
+        this.particleData[idx].isSoot = isSoot;
+        this.particleData[idx].normalizedRadius = normalizedR;
+        this.particleData[idx].angle = angle;
         
-        // Color - mix of yellow, orange, and white core
-        const colorChoice = Math.random();
-        if (colorChoice < 0.2) {
-            // White/yellow core
-            colors[idx * 3] = 1;
-            colors[idx * 3 + 1] = 1;
-            colors[idx * 3 + 2] = 0.8;
-        } else if (colorChoice < 0.6) {
-            // Yellow
-            colors[idx * 3] = 1;
-            colors[idx * 3 + 1] = 0.8;
-            colors[idx * 3 + 2] = 0.2;
+        // Color based on exhaust mode - center is hotter (brighter)
+        if (isSoot && mode.sootColor) {
+            colors[idx * 3] = mode.sootColor[0];
+            colors[idx * 3 + 1] = mode.sootColor[1];
+            colors[idx * 3 + 2] = mode.sootColor[2];
+            sizes[idx] = 0.1 + Math.random() * 0.15;
         } else {
-            // Orange
-            colors[idx * 3] = 1;
-            colors[idx * 3 + 1] = 0.4;
-            colors[idx * 3 + 2] = 0.1;
+            // Center particles use core color, edge particles use outer color
+            let color;
+            if (normalizedR < 0.3) {
+                color = mode.coreColor;
+            } else if (normalizedR < 0.6) {
+                color = mode.midColor;
+            } else {
+                color = mode.outerColor;
+            }
+            colors[idx * 3] = color[0];
+            colors[idx * 3 + 1] = color[1];
+            colors[idx * 3 + 2] = color[2];
+            sizes[idx] = mode.particleSize * (0.8 + Math.random() * 0.4);
+        }
+    }
+    
+    // Get plume radius at a given Y position below nozzle exit
+    getPlumeRadius(y) {
+        const nozzleExitY = -1.65;
+        const nozzleExitRadius = 0.70;
+        
+        if (y > nozzleExitY) {
+            return nozzleExitRadius;
         }
         
-        sizes[idx] = 0.3 + Math.random() * 0.3;
+        // Plume expands slightly after exit
+        const distance = nozzleExitY - y;
+        const expansionRate = 0.12; // How fast plume expands
+        return nozzleExitRadius + distance * expansionRate;
+    }
+    
+    setupShockDiamonds() {
+        // Shock diamonds disabled - they looked like distracting white disks
+        // Could be reimplemented with better visuals (e.g., brightness variations in particle colors)
+        this.shockDiamonds = [];
+        this.shockGroup = new THREE.Group();
+        // Not adding to scene - keeping method for potential future use
+    }
+    
+    setupExhaustModeSelector() {
+        const selector = document.getElementById('exhaust-mode');
+        const desc = document.getElementById('exhaust-desc');
+        
+        selector.addEventListener('change', (e) => {
+            this.exhaustMode = e.target.value;
+            desc.textContent = this.exhaustModes[this.exhaustMode].desc;
+            
+            // Update flame light color based on mode
+            const mode = this.exhaustModes[this.exhaustMode];
+            const avgColor = [
+                (mode.coreColor[0] + mode.midColor[0]) / 2,
+                (mode.coreColor[1] + mode.midColor[1]) / 2,
+                (mode.coreColor[2] + mode.midColor[2]) / 2
+            ];
+            this.flameLight.color.setRGB(avgColor[0], avgColor[1], avgColor[2]);
+        });
     }
     
     updateParticles(deltaTime) {
         const positions = this.particleSystem.geometry.attributes.position.array;
         const sizes = this.particleSystem.geometry.attributes.size.array;
         const colors = this.particleSystem.geometry.attributes.color.array;
+        const mode = this.exhaustModes[this.exhaustMode];
         
         for (let i = 0; i < this.maxParticles; i++) {
             if (!this.particleData[i].active) continue;
             
             const p = this.particleData[i];
-            p.life -= deltaTime * 1.2;
+            p.life -= deltaTime * 0.6; // Slower decay for longer plume
             
             if (p.life <= 0) {
                 p.active = false;
@@ -465,27 +599,30 @@ class RocketEngineSimulator3D {
                 continue;
             }
             
+            // Simple physics - particles flow down and expand outward slightly
+            const expandRate = 1 + (mode.spread * 0.012);
+            p.velocity.x *= expandRate;
+            p.velocity.z *= expandRate;
+            
             // Update position
             positions[i * 3] += p.velocity.x * deltaTime;
             positions[i * 3 + 1] += p.velocity.y * deltaTime;
             positions[i * 3 + 2] += p.velocity.z * deltaTime;
             
-            // Expand outward as it falls
-            p.velocity.x *= 1.015;
-            p.velocity.z *= 1.015;
+            // Size - larger particles that fade over lifetime
+            const baseSize = p.isSoot ? 0.15 : mode.particleSize * 1.5;
+            const lifeFactor = p.life > 0.85 ? 0.7 : Math.min(1.0, p.life * 1.2);
+            sizes[i] = baseSize * lifeFactor;
             
-            // Size grows then fades
-            const lifeFactor = p.life > 0.7 ? (1 - p.life) * 3.33 + 0.5 : p.life * 1.43;
-            sizes[i] = (0.3 + Math.random() * 0.2) * lifeFactor;
-            
-            // Fade color to red/dark as particle ages
-            const fadePoint = 0.4;
-            if (p.life < fadePoint) {
-                const fade = p.life / fadePoint;
-                colors[i * 3 + 1] *= 0.95; // Reduce green
-                colors[i * 3 + 2] *= 0.9;  // Reduce blue
+            // Fade color as particle ages (soot stays dark)
+            if (!p.isSoot && p.life < 0.4) {
+                colors[i * 3 + 1] *= 0.97;
+                colors[i * 3 + 2] *= 0.94;
             }
         }
+        
+        // Update particle opacity for modes like LH2 that are nearly invisible
+        this.particleSystem.material.opacity = mode.opacity || 1.0;
         
         this.particleSystem.geometry.attributes.position.needsUpdate = true;
         this.particleSystem.geometry.attributes.size.needsUpdate = true;
@@ -636,10 +773,16 @@ class RocketEngineSimulator3D {
             
             this.flameIntensity = easedProgress;
             
-            // Emit particles
-            const particlesToEmit = Math.floor(easedProgress * 15);
+            // Emit particles based on current exhaust mode
+            const mode = this.exhaustModes[this.exhaustMode];
+            const particlesToEmit = Math.floor(easedProgress * mode.particleCount);
             for (let i = 0; i < particlesToEmit; i++) {
-                this.emitParticle();
+                this.emitParticle(false);
+            }
+            
+            // Emit soot particles for RP-1
+            if (mode.hasSoot && Math.random() < 0.3) {
+                this.emitParticle(true);
             }
             
             if (this.firingTime >= this.maxFiringTime) {
@@ -656,15 +799,21 @@ class RocketEngineSimulator3D {
             this.flameIntensity *= 0.92;
         }
         
-        // Update engine glow
+        // Update engine glow based on mode
+        const mode = this.exhaustModes[this.exhaustMode];
+        const glowMult = mode.glowIntensity || 1.0;
+        
         if (this.nozzleInner) {
-            this.nozzleInner.material.opacity = this.flameIntensity * 0.6;
+            this.nozzleInner.material.opacity = this.flameIntensity * 0.6 * glowMult;
+            // Update glow color based on mode
+            const midColor = mode.midColor;
+            this.nozzleInner.material.color.setRGB(midColor[0], midColor[1], midColor[2]);
         }
         if (this.chamberInner) {
-            this.chamberInner.material.opacity = this.flameIntensity * 0.4;
+            this.chamberInner.material.opacity = this.flameIntensity * 0.4 * glowMult;
         }
         if (this.flameLight) {
-            this.flameLight.intensity = this.flameIntensity * 3;
+            this.flameLight.intensity = this.flameIntensity * 3 * glowMult;
         }
         
         // Update particles
@@ -672,6 +821,10 @@ class RocketEngineSimulator3D {
         
         // Update graphs
         this.updateGraphs();
+    }
+    
+    updateShockDiamonds() {
+        // Disabled - shock diamonds removed
     }
     
     updatePropellantUI() {
