@@ -166,8 +166,12 @@ class RocketEngineSimulator3D {
                 hasTurbopump: true,
                 hasGimbal: true,
                 color: 0x666666,  // Dark gray/black
-                propellant: 'rp1-lox'
-                // Note: External model disabled - original has unseparable cutaway
+                propellant: 'rp1-lox',
+                // External 3D model (CC Attribution - KUBAHA)
+                externalModel: 'models/merlin_1d-single.glb',
+                modelScale: 0.55,
+                modelRotation: { x: 0, y: 0, z: 0 },
+                modelOffset: { x: 0, y: 0, z: 0 }
             },
             'raptor': {
                 name: 'SpaceX Raptor 3',

@@ -15,9 +15,9 @@
 - **Requirements**: Author must be credited. Commercial use is allowed.
 
 ## SpaceX Merlin 1D Engine
-- **Model**: merlin_1d_solid.glb (extracted from merlin_1d.glb)
+- **Model**: merlin_1d-single.glb
 - **Author**: KUBAHA
 - **Source**: https://sketchfab.com/3d-models/merlin-1d-e5caa613e4f64558aebfd6c491751ddf
 - **License**: CC Attribution (https://creativecommons.org/licenses/by/4.0/)
 - **Requirements**: Author must be credited. Commercial use is allowed.
-- **Note**: Solid engine extracted from original model (cutaway portion removed)
+- **Note**: Edited in Blender to remove cutaway portion from original model
