@@ -167,6 +167,7 @@ class RocketEngineSimulator3D {
                 hasGimbal: true,
                 color: 0x666666,  // Dark gray/black
                 propellant: 'rp1-lox'
+                // Note: External model disabled - original has unseparable cutaway
             },
             'raptor': {
                 name: 'SpaceX Raptor 3',
@@ -185,7 +186,7 @@ class RocketEngineSimulator3D {
                 propellant: 'methane-lox',
                 // External 3D model (CC Attribution - VoitAa on Sketchfab)
                 externalModel: 'models/spacex_starship_raptor_3_engine.glb',
-                modelScale: 1.8,
+                modelScale: 0.55,
                 modelRotation: { x: 0, y: 0, z: 0 },
                 modelOffset: { x: 0, y: 0, z: 0 }
             },
@@ -203,7 +204,12 @@ class RocketEngineSimulator3D {
                 hasGimbal: true,
                 hasPreburners: true,
                 color: 0xaa8866,  // Copper/bronze color
-                propellant: 'lh2-lox'
+                propellant: 'lh2-lox',
+                // External 3D model
+                externalModel: 'models/rs-25_engine.glb',
+                modelScale: 0.55,
+                modelRotation: { x: 0, y: 0, z: 0 },
+                modelOffset: { x: 0, y: 0, z: 0 }
             },
             'f1': {
                 name: 'Rocketdyne F-1',
