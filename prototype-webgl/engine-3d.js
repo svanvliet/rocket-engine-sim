@@ -43,6 +43,16 @@ class RocketEngineSimulator3D {
         this.currentIsp = 0;
         this.currentPressure = 0;
         
+        // Peak readings (for results)
+        this.peakThrust = 0;
+        this.peakIsp = 0;
+        this.peakPressure = 0;
+        
+        // Failure system
+        this.willFail = false;
+        this.failureData = null;
+        this.failureTriggered = false;
+        
         // Target values
         this.targetThrust = 102;
         this.targetIsp = 290;
@@ -998,6 +1008,23 @@ class RocketEngineSimulator3D {
         this.currentIsp = 0;
         this.currentPressure = 0;
         
+        // Reset peak values for new test
+        this.peakThrust = 0;
+        this.peakIsp = 0;
+        this.peakPressure = 0;
+        
+        // Check if this test will fail (uses game-state.js functions)
+        this.failureTriggered = false;
+        if (typeof shouldTestFail === 'function' && shouldTestFail()) {
+            this.willFail = true;
+            this.failureData = generateFailure();
+            // Failure time is percentage of max firing time
+            this.failureTime = this.failureData.failureTime * this.maxFiringTime;
+        } else {
+            this.willFail = false;
+            this.failureData = null;
+        }
+        
         this.fuelRemaining = this.fuelCapacity;
         this.oxidizerRemaining = this.oxidizerCapacity;
         this.updatePropellantUI();
@@ -1007,13 +1034,61 @@ class RocketEngineSimulator3D {
         this.tempData = [];
     }
     
+    triggerFailure() {
+        if (this.failureTriggered) return;
+        this.failureTriggered = true;
+        
+        this.state = 'failure';
+        document.getElementById('countdown').textContent = '⚠️ FAILURE';
+        document.getElementById('status').textContent = 'ENGINE FAILURE';
+        document.getElementById('status').className = 'status-indicator';
+        document.getElementById('status').style.background = 'rgba(220, 38, 38, 0.8)';
+        document.getElementById('status').style.borderColor = '#dc2626';
+        document.getElementById('status').style.color = '#fecaca';
+        
+        // Store peak values before failure
+        this.failureData.peakThrustBeforeFailure = this.peakThrust;
+        this.failureData.peakIspBeforeFailure = this.peakIsp;
+        this.failureData.peakPressureBeforeFailure = this.peakPressure;
+        this.failureData.duration = this.firingTime / 1000;
+        
+        // Show failure screen after brief delay
+        // Deep copy failure data before reset clears it
+        const failureDataCopy = JSON.parse(JSON.stringify(this.failureData));
+        setTimeout(() => {
+            this.resetTest();
+            if (window.onTestFailure) {
+                window.onTestFailure(failureDataCopy);
+            }
+        }, 2500);
+    }
+    
     abortTest() {
         this.state = 'shutdown';
         document.getElementById('countdown').textContent = 'ABORTED';
         document.getElementById('status').textContent = 'TEST ABORTED';
         document.getElementById('status').className = 'status-indicator';
         
-        setTimeout(() => this.resetTest(), 2000);
+        // Calculate test duration in seconds
+        const testDuration = this.firingTime / 1000;
+        
+        // Send results to game state even on abort (use peak values)
+        setTimeout(() => {
+            const testResults = {
+                thrust: this.peakThrust,
+                isp: this.peakIsp,
+                pressure: this.peakPressure,
+                duration: testDuration,
+                aborted: true
+            };
+            
+            if (window.onTestComplete) {
+                this.resetTest();
+                window.onTestComplete(testResults);
+            } else {
+                this.resetTest();
+            }
+        }, 2000);
     }
     
     completeTest() {
@@ -1021,12 +1096,31 @@ class RocketEngineSimulator3D {
         document.getElementById('countdown').textContent = 'TEST COMPLETE';
         document.getElementById('status').textContent = 'TEST COMPLETE';
         
-        if (this.currentThrust >= this.targetThrust) {
+        if (this.peakThrust >= this.targetThrust) {
             document.getElementById('goal-thrust').classList.add('success');
             document.getElementById('thrust-check').style.display = 'inline';
         }
         
-        setTimeout(() => this.resetTest(), 3000);
+        // Calculate test duration in seconds
+        const testDuration = this.firingTime / 1000;
+        
+        // Send results to game state and show results screen (use peak values)
+        setTimeout(() => {
+            const testResults = {
+                thrust: this.peakThrust,
+                isp: this.peakIsp,
+                pressure: this.peakPressure,
+                duration: testDuration
+            };
+            
+            // Call the results screen if available
+            if (window.onTestComplete) {
+                this.resetTest();
+                window.onTestComplete(testResults);
+            } else {
+                this.resetTest();
+            }
+        }, 2000);
     }
     
     resetTest() {
@@ -1036,6 +1130,14 @@ class RocketEngineSimulator3D {
         document.getElementById('countdown').textContent = 'Ready';
         document.getElementById('status').textContent = 'STANDBY';
         document.getElementById('status').className = 'status-indicator';
+        document.getElementById('status').style.background = '';
+        document.getElementById('status').style.borderColor = '';
+        document.getElementById('status').style.color = '';
+        
+        // Reset failure state
+        this.willFail = false;
+        this.failureData = null;
+        this.failureTriggered = false;
         
         this.fuelRemaining = this.fuelCapacity;
         this.oxidizerRemaining = this.oxidizerCapacity;
@@ -1079,6 +1181,11 @@ class RocketEngineSimulator3D {
             this.currentIsp = Math.round(this.targetIsp * easedProgress * fluctuation);
             this.currentPressure = Math.round(this.targetPressure * easedProgress * fluctuation * 10) / 10;
             
+            // Track peak values for results
+            if (this.currentThrust > this.peakThrust) this.peakThrust = this.currentThrust;
+            if (this.currentIsp > this.peakIsp) this.peakIsp = this.currentIsp;
+            if (this.currentPressure > this.peakPressure) this.peakPressure = this.currentPressure;
+            
             document.getElementById('current-thrust').textContent = `${this.currentThrust} kN`;
             document.getElementById('current-isp').textContent = `${this.currentIsp} s`;
             document.getElementById('current-pressure').textContent = `${this.currentPressure} MPa`;
@@ -1110,9 +1217,25 @@ class RocketEngineSimulator3D {
                 this.emitParticle(true);
             }
             
+            // Check for failure
+            if (this.willFail && this.firingTime >= this.failureTime) {
+                this.triggerFailure();
+                return;
+            }
+            
             if (this.firingTime >= this.maxFiringTime) {
                 this.completeTest();
             }
+        } else if (this.state === 'failure') {
+            // Rapid shutdown animation during failure
+            this.flameIntensity *= 0.85;
+            this.currentThrust = Math.round(this.currentThrust * 0.7);
+            this.currentPressure = Math.round(this.currentPressure * 0.7 * 10) / 10;
+            
+            document.getElementById('current-thrust').textContent = `${this.currentThrust} kN`;
+            document.getElementById('current-pressure').textContent = `${this.currentPressure} MPa`;
+            document.getElementById('current-thrust').className = 'stat-value';
+            document.getElementById('current-thrust').style.color = '#ef4444';
         } else if (this.state === 'shutdown') {
             this.flameIntensity *= 0.92;
             this.currentThrust = Math.round(this.currentThrust * 0.95);
@@ -1250,9 +1373,67 @@ class RocketEngineSimulator3D {
     easeOutCubic(t) {
         return 1 - Math.pow(1 - t, 3);
     }
+    
+    // Configure engine performance based on selected components
+    configureFromDesign(componentStats) {
+        // Base values (minimal engine)
+        let thrust = 10;  // kN
+        let isp = 50;     // seconds
+        let pressure = 2; // MPa
+        
+        // Add component contributions
+        if (componentStats.chamber) {
+            thrust += componentStats.chamber.thrust || 0;
+            isp += componentStats.chamber.isp || 0;
+            pressure += componentStats.chamber.pressure || 0;
+        }
+        if (componentStats.injector) {
+            thrust += componentStats.injector.thrust || 0;
+            isp += componentStats.injector.isp || 0;
+            pressure += componentStats.injector.pressure || 0;
+        }
+        if (componentStats.nozzle) {
+            thrust += componentStats.nozzle.thrust || 0;
+            isp += componentStats.nozzle.isp || 0;
+            pressure += componentStats.nozzle.pressure || 0;
+        }
+        if (componentStats.pump) {
+            thrust += componentStats.pump.thrust || 0;
+            isp += componentStats.pump.isp || 0;
+            pressure += componentStats.pump.pressure || 0;
+        }
+        
+        // Set propellant based on selection
+        if (componentStats.propellant) {
+            const propId = componentStats.propellant.id;
+            if (propId === 'prop-small') {
+                this.fuelCapacity = 425;
+                this.oxidizerCapacity = 1075;
+            } else if (propId === 'prop-medium') {
+                this.fuelCapacity = 850;
+                this.oxidizerCapacity = 2150;
+            } else if (propId === 'prop-large') {
+                this.fuelCapacity = 1420;
+                this.oxidizerCapacity = 3580;
+            }
+        }
+        
+        // Apply some randomness/variation (+/- 10%)
+        const variation = () => 0.9 + Math.random() * 0.2;
+        this.targetThrust = Math.round(thrust * variation());
+        this.targetIsp = Math.round(isp * variation());
+        this.targetPressure = Math.round(pressure * variation() * 10) / 10;
+        
+        // Update propellant UI
+        this.fuelRemaining = this.fuelCapacity;
+        this.oxidizerRemaining = this.oxidizerCapacity;
+        this.updatePropellantUI();
+        
+        console.log(`Engine configured: Thrust=${this.targetThrust}kN, Isp=${this.targetIsp}s, Pressure=${this.targetPressure}MPa`);
+    }
 }
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    new RocketEngineSimulator3D();
+    window.rocketSim = new RocketEngineSimulator3D();
 });

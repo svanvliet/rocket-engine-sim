@@ -4,511 +4,595 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rocket Engine Test Fire - 3D WebGL Prototype</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            background: #0a1628;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        
-        #game-container {
-            position: relative;
-            width: 1200px;
-            height: 750px;
-            background: linear-gradient(180deg, #1a3a5c 0%, #0f2847 50%, #0a1f3a 100%);
-            border: 4px solid #3a6a9a;
-            border-radius: 12px;
-            box-shadow: 
-                inset 0 0 100px rgba(100, 150, 200, 0.1),
-                0 0 40px rgba(50, 100, 150, 0.3);
-            overflow: hidden;
-        }
-        
-        #canvas-container {
-            position: absolute;
-            top: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 400px;
-            height: 600px;
-            z-index: 5;
-        }
-        
-        #engine-canvas {
-            width: 100%;
-            height: 100%;
-            cursor: grab;
-        }
-        
-        #engine-canvas:active {
-            cursor: grabbing;
-        }
-        
-        .rotation-hint {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(168, 212, 255, 0.6);
-            font-size: 11px;
-            pointer-events: none;
-        }
-        
-        /* Header */
-        .header {
-            position: absolute;
-            top: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-            z-index: 10;
-        }
-        
-        .header h1 {
-            color: #e8f4ff;
-            font-size: 32px;
-            font-weight: bold;
-            text-shadow: 0 2px 10px rgba(0, 100, 200, 0.5);
-            letter-spacing: 3px;
-        }
-        
-        .countdown {
-            color: #ffd700;
-            font-size: 24px;
-            margin-top: 5px;
-            font-weight: bold;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-        }
-        
-        /* Left Panel - Graphs */
-        .left-panel {
-            position: absolute;
-            left: 20px;
-            top: 100px;
-            width: 280px;
-            z-index: 10;
-        }
-        
-        .graph-container {
-            background: rgba(20, 50, 80, 0.8);
-            border: 2px solid #3a6a9a;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 15px;
-        }
-        
-        .graph-title {
-            color: #a8d4ff;
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-        
-        .graph-canvas {
-            background: rgba(10, 30, 50, 0.8);
-            border: 1px solid #2a5a8a;
-            border-radius: 4px;
-        }
-        
-        /* Right Panel - Stats */
-        .right-panel {
-            position: absolute;
-            right: 20px;
-            top: 100px;
-            width: 260px;
-            z-index: 10;
-        }
-        
-        .stats-container {
-            background: rgba(20, 50, 80, 0.8);
-            border: 2px solid #3a6a9a;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .stats-title {
-            color: #a8d4ff;
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 12px;
-            border-bottom: 1px solid #3a6a9a;
-            padding-bottom: 8px;
-        }
-        
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            color: #e8f4ff;
-            font-size: 16px;
-        }
-        
-        .stat-label {
-            color: #8ab4d8;
-        }
-        
-        .stat-value {
-            font-weight: bold;
-            font-size: 20px;
-        }
-        
-        .stat-value.success {
-            color: #4ade80;
-        }
-        
-        .stat-value.warning {
-            color: #fbbf24;
-        }
-        
-        .check-mark {
-            color: #4ade80;
-            margin-left: 5px;
-        }
-        
-        /* Control Panel */
-        .control-panel {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 20px;
-            z-index: 4;
-        }
-        
-        .btn {
-            padding: 15px 40px;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .btn-fire {
-            background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
-        }
-        
-        .btn-fire:hover {
-            background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
-        }
-        
-        .btn-fire:disabled {
-            background: linear-gradient(180deg, #6b7280 0%, #4b5563 100%);
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-        
-        .btn-abort {
-            background: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
-        }
-        
-        .btn-abort:hover {
-            background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
-            transform: translateY(-2px);
-        }
-        
-        .btn-abort:disabled {
-            background: linear-gradient(180deg, #6b7280 0%, #4b5563 100%);
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-        
-        /* Status indicator */
-        .status-indicator {
-            position: absolute;
-            top: 55px;
-            right: 20px;
-            padding: 5px 20px;
-            background: rgba(20, 50, 80, 0.9);
-            border: 1px solid #3a6a9a;
-            border-radius: 20px;
-            color: #a8d4ff;
-            font-size: 12px;
-            z-index: 10;
-        }
-        
-        .status-indicator.running {
-            background: rgba(34, 197, 94, 0.3);
-            border-color: #22c55e;
-            color: #4ade80;
-        }
-        
-        /* Propellant Tanks */
-        .tanks-container {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-        }
-        
-        .tank {
-            flex: 1;
-            text-align: center;
-        }
-        
-        .tank-label {
-            color: #a8d4ff;
-            font-size: 11px;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        
-        .tank-visual {
-            position: relative;
-            width: 100%;
-            height: 120px;
-            background: rgba(10, 30, 50, 0.8);
-            border: 2px solid #3a6a9a;
-            border-radius: 8px 8px 20px 20px;
-            overflow: hidden;
-        }
-        
-        .tank-fill {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 100%;
-            transition: height 0.1s linear;
-        }
-        
-        .fuel-fill {
-            background: linear-gradient(180deg, 
-                rgba(255, 200, 150, 0.9) 0%, 
-                rgba(255, 160, 100, 0.95) 50%,
-                rgba(230, 130, 70, 1) 100%);
-            box-shadow: 
-                inset 0 0 20px rgba(255, 150, 50, 0.5),
-                0 0 10px rgba(255, 150, 50, 0.3);
-        }
-        
-        .oxidizer-fill {
-            background: linear-gradient(180deg, 
-                rgba(200, 230, 255, 0.9) 0%, 
-                rgba(150, 200, 255, 0.95) 50%,
-                rgba(100, 170, 255, 1) 100%);
-            box-shadow: 
-                inset 0 0 20px rgba(150, 200, 255, 0.5),
-                0 0 10px rgba(150, 200, 255, 0.3);
-        }
-        
-        .tank-level {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #fff;
-            font-size: 16px;
-            font-weight: bold;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-            z-index: 1;
-        }
-        
-        .tank-amount {
-            color: #8ab4d8;
-            font-size: 12px;
-            margin-top: 6px;
-        }
-        
-        .tank-fill.low {
-            animation: tankWarning 0.5s ease-in-out infinite alternate;
-        }
-        
-        @keyframes tankWarning {
-            from { opacity: 0.8; }
-            to { opacity: 1; }
-        }
-        
-        /* Exhaust Mode Selector */
-        .mode-selector {
-            position: absolute;
-            top: 55px;
-            left: 20px;
-            z-index: 10;
-        }
-        
-        .mode-selector label {
-            color: #a8d4ff;
-            font-size: 11px;
-            display: block;
-            margin-bottom: 5px;
-        }
-        
-        .mode-selector select {
-            background: rgba(20, 50, 80, 0.9);
-            border: 1px solid #3a6a9a;
-            border-radius: 4px;
-            color: #e8f4ff;
-            padding: 5px 10px;
-            font-size: 12px;
-            cursor: pointer;
-            width: 100%;
-        }
-        
-        .mode-selector select:hover {
-            border-color: #5a8aba;
-        }
-        
-        .mode-description {
-            color: rgba(168, 212, 255, 0.7);
-            font-size: 10px;
-            margin-top: 5px;
-            max-width: 200px;
-            line-height: 1.3;
-        }
-        
-        .mode-selector-group {
-            margin-bottom: 15px;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div id="game-container">
-        <!-- Header -->
-        <div class="header">
-            <h1>TEST FIRING...</h1>
-            <div class="countdown" id="countdown">Ready</div>
-        </div>
-        
-        <div class="status-indicator" id="status">STANDBY</div>
-        
-        <!-- Mode Selectors -->
-        <div class="mode-selector">
-            <div class="mode-selector-group">
-                <label>Engine Model</label>
-                <select id="engine-model">
-                    <option value="generic" selected>Generic Engine</option>
-                    <option value="merlin">SpaceX Merlin 1D</option>
-                    <option value="raptor">SpaceX Raptor 3</option>
-                    <option value="rs25">RS-25 (SSME)</option>
-                    <option value="f1">Rocketdyne F-1</option>
-                </select>
-                <div class="mode-description" id="engine-desc">
-                    Simple engine for learning fundamentals
-                </div>
-            </div>
-            
-            <div class="mode-selector-group">
-                <label>Exhaust Visualization</label>
-                <select id="exhaust-mode">
-                    <option value="stylized">Stylized (Arcade)</option>
-                    <option value="rp1-lox" selected>RP-1/LOX Realistic</option>
-                    <option value="lh2-lox">LH2/LOX (Near-invisible)</option>
-                    <option value="methane-lox">Methane/LOX (Raptor)</option>
-                    <option value="shock-diamonds">Shock Diamonds</option>
-                </select>
-                <div class="mode-description" id="exhaust-desc">
-                    Kerosene fuel - orange flame with soot particles
-                </div>
+        <!-- ========== SCREEN 1: SPLASH ========== -->
+        <div id="splash-screen" class="screen active">
+            <div class="splash-logo">🚀 ROCKET ENGINE SIM</div>
+            <div class="splash-tagline">Powered by real rocket physics</div>
+            <div class="splash-loader">
+                <div class="splash-loader-bar"></div>
             </div>
         </div>
         
-        <!-- 3D Engine Canvas -->
-        <div id="canvas-container">
-            <canvas id="engine-canvas"></canvas>
-            <div class="rotation-hint">🖱️ Drag to rotate • Scroll to zoom</div>
-        </div>
-        
-        <!-- Left Panel - Graphs -->
-        <div class="left-panel">
-            <div class="graph-container">
-                <div class="graph-title">Thrust</div>
-                <canvas class="graph-canvas" id="thrust-graph" width="256" height="80"></canvas>
-            </div>
-            <div class="graph-container">
-                <div class="graph-title">Chamber Pressure</div>
-                <canvas class="graph-canvas" id="pressure-graph" width="256" height="80"></canvas>
-            </div>
-            <div class="graph-container">
-                <div class="graph-title">Temperature</div>
-                <canvas class="graph-canvas" id="temp-graph" width="256" height="80"></canvas>
+        <!-- ========== SCREEN 2: MAIN MENU ========== -->
+        <div id="main-menu" class="screen">
+            <div class="menu-title">🚀 ROCKET ENGINE SIM</div>
+            <div class="menu-subtitle">Design • Build • Test • Iterate</div>
+            <div class="menu-buttons">
+                <button class="menu-btn primary" id="new-game-btn">New Game</button>
+                <button class="menu-btn" disabled>Continue</button>
+                <button class="menu-btn" disabled>Level Select</button>
+                <button class="menu-btn" disabled>Settings</button>
             </div>
         </div>
         
-        <!-- Right Panel - Stats -->
-        <div class="right-panel">
-            <div class="stats-container">
-                <div class="stats-title">Goals</div>
-                <div class="stat-row">
-                    <span class="stat-label">Thrust:</span>
-                    <span class="stat-value" id="goal-thrust">102 kN<span class="check-mark" id="thrust-check" style="display:none">✓</span></span>
+        <!-- ========== SCREEN 3: DIFFICULTY SELECTION ========== -->
+        <div id="difficulty-screen" class="screen">
+            <button class="back-btn" id="diff-back-btn">← Back</button>
+            <div class="screen-title">Select Difficulty</div>
+            <div class="difficulty-cards">
+                <div class="difficulty-card" data-difficulty="casual">
+                    <div class="difficulty-name">Casual</div>
+                    <div class="difficulty-budget">$1,000,000</div>
+                    <div class="difficulty-desc">Forgiving failures. No time pressure. Perfect for learning.</div>
                 </div>
-                <div class="stat-row">
-                    <span class="stat-label">Isp:</span>
-                    <span class="stat-value" id="goal-isp">290 s</span>
+                <div class="difficulty-card selected" data-difficulty="normal">
+                    <div class="difficulty-name">Normal</div>
+                    <div class="difficulty-budget">$600,000</div>
+                    <div class="difficulty-desc">Balanced challenge. Failed tests can damage components.</div>
                 </div>
-                <div class="stat-row">
-                    <span class="stat-label">Pressure:</span>
-                    <span class="stat-value" id="goal-pressure">25 MPa</span>
+                <div class="difficulty-card" data-difficulty="hard">
+                    <div class="difficulty-name">Hard</div>
+                    <div class="difficulty-budget">$400,000</div>
+                    <div class="difficulty-desc">Strict consequences. Time pressure. Complex physics.</div>
                 </div>
-            </div>
-            
-            <div class="stats-container">
-                <div class="stats-title">Current Test Readings</div>
-                <div class="stat-row">
-                    <span class="stat-label">🔥 Thrust:</span>
-                    <span class="stat-value warning" id="current-thrust">0 kN</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">⚡ Isp:</span>
-                    <span class="stat-value warning" id="current-isp">0 s</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">💨 Pressure:</span>
-                    <span class="stat-value warning" id="current-pressure">0 MPa</span>
+                <div class="difficulty-card" data-difficulty="hardcore">
+                    <div class="difficulty-name">Hardcore</div>
+                    <div class="difficulty-budget">$200,000</div>
+                    <div class="difficulty-desc">Permadeath. One failed test ends the game. Experts only.</div>
                 </div>
             </div>
-            
-            <div class="stats-container">
-                <div class="stats-title">Propellant Tanks</div>
-                <div class="tanks-container">
-                    <div class="tank">
-                        <div class="tank-label">RP-1 (Fuel)</div>
-                        <div class="tank-visual">
-                            <div class="tank-fill fuel-fill" id="fuel-fill"></div>
-                            <div class="tank-level" id="fuel-level">100%</div>
+            <button class="menu-btn primary" id="confirm-difficulty-btn">Confirm Selection</button>
+        </div>
+        
+        <!-- ========== SCREEN 4: WORLD INTRO ========== -->
+        <div id="world-intro" class="screen">
+            <button class="back-btn" id="world-back-btn">← Back</button>
+            <div class="world-title">🏠 World 1: The Garage</div>
+            <div class="world-subtitle">Where every great rocket company begins</div>
+            <div class="world-narrative">
+                <div class="narrative-text">
+                    <div class="narrative-speaker">🧑‍🔬 Dr. Chen (Lead Engineer)</div>
+                    Welcome to NovaSpace! We're a scrappy startup racing to prove our tech works. 
+                    The VCs gave us seed funding, but we need to show real progress—fast.
+                </div>
+                <div class="narrative-text">
+                    <div class="narrative-speaker">🧑‍💼 Marcus (CEO)</div>
+                    Our first milestone: build a working test engine. Nothing fancy—just something 
+                    that fires, generates thrust, and doesn't explode. Sound simple? It's not.
+                </div>
+                <div class="narrative-text">
+                    <div class="narrative-speaker">🧑‍🔧 Sam (Technician)</div>
+                    I've set up the test stand in my garage. We've got a budget, some basic 
+                    components, and a dream. Let's make some noise!
+                </div>
+            </div>
+            <button class="menu-btn primary" id="enter-level-btn">Enter Level 1</button>
+        </div>
+        
+        <!-- ========== SCREEN 5: LEVEL BRIEFING ========== -->
+        <div id="level-briefing" class="screen">
+            <button class="back-btn" id="brief-back-btn">← Back</button>
+            <div class="level-title">Level 1: First Fire</div>
+            <div class="level-subtitle">Prove the concept works</div>
+            <div class="briefing-content">
+                <div class="briefing-left">
+                    <div class="briefing-section">
+                        <div class="briefing-section-title">🎯 Mission Goals</div>
+                        <div class="goal-item">
+                            <span>Minimum Thrust</span>
+                            <span class="goal-value">100 kN</span>
                         </div>
-                        <div class="tank-amount" id="fuel-amount">850 kg</div>
+                        <div class="goal-item">
+                            <span>Minimum Specific Impulse</span>
+                            <span class="goal-value">280 s</span>
+                        </div>
+                        <div class="goal-item">
+                            <span>Chamber Pressure</span>
+                            <span class="goal-value">20-30 MPa</span>
+                        </div>
+                        <div class="goal-item">
+                            <span>Test Duration</span>
+                            <span class="goal-value">5+ seconds</span>
+                        </div>
                     </div>
-                    <div class="tank">
-                        <div class="tank-label">LOX (Oxidizer)</div>
-                        <div class="tank-visual">
-                            <div class="tank-fill oxidizer-fill" id="oxidizer-fill"></div>
-                            <div class="tank-level" id="oxidizer-level">100%</div>
+                    <div class="briefing-section">
+                        <div class="briefing-section-title">📋 Constraints</div>
+                        <div class="goal-item">
+                            <span>Propellant Type</span>
+                            <span class="goal-value">RP-1/LOX</span>
                         </div>
-                        <div class="tank-amount" id="oxidizer-amount">2125 kg</div>
+                        <div class="goal-item">
+                            <span>Available Propellant</span>
+                            <span class="goal-value">3,000 kg</span>
+                        </div>
                     </div>
                 </div>
+                <div class="briefing-right">
+                    <div class="budget-display">
+                        <div class="budget-label">AVAILABLE BUDGET</div>
+                        <div class="budget-amount" id="briefing-budget">$600,000</div>
+                    </div>
+                    <div class="briefing-section" style="margin-top: 20px;">
+                        <div class="briefing-section-title">💡 Engineer's Tip</div>
+                        <p style="color: #a8d4ff; line-height: 1.5; font-size: 14px;">
+                            Start simple. A basic combustion chamber, fuel injector, and nozzle 
+                            can achieve these goals. Don't over-engineer your first design—save 
+                            budget for iteration!
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <button class="menu-btn primary" id="start-design-btn" style="margin-top: 20px;">Start Designing</button>
+        </div>
+        
+        <!-- ========== SCREEN 6: DESIGN PHASE ========== -->
+        <div id="design-phase" class="screen">
+            <button class="back-btn" id="design-back-btn">← Back</button>
+            <button class="help-btn" id="help-btn">?</button>
+            <div class="design-header">
+                <div class="design-title">🔧 Engine Design</div>
+                <div class="budget-bar">
+                    <span class="budget-bar-label">Budget Remaining:</span>
+                    <span class="budget-bar-amount" id="design-budget">$600,000</span>
+                </div>
+            </div>
+            <div class="design-content">
+                <div class="component-palette">
+                    <div class="palette-title">Components</div>
+                    
+                    <div class="component-category">
+                        <div class="category-name">Combustion Chamber</div>
+                        <div class="component-item" data-component="chamber-basic" data-cost="50000" data-category="chamber">
+                            <span class="component-name">Basic Steel</span>
+                            <span class="component-cost">$50,000</span>
+                        </div>
+                        <div class="component-item" data-component="chamber-advanced" data-cost="120000" data-category="chamber">
+                            <span class="component-name">Inconel Alloy</span>
+                            <span class="component-cost">$120,000</span>
+                        </div>
+                        <div class="component-item" data-component="chamber-premium" data-cost="200000" data-category="chamber">
+                            <span class="component-name">Regen Cooled</span>
+                            <span class="component-cost">$200,000</span>
+                        </div>
+                    </div>
+                    
+                    <div class="component-category">
+                        <div class="category-name">Fuel Injector</div>
+                        <div class="component-item" data-component="injector-basic" data-cost="30000" data-category="injector">
+                            <span class="component-name">Shower Head</span>
+                            <span class="component-cost">$30,000</span>
+                        </div>
+                        <div class="component-item" data-component="injector-advanced" data-cost="80000" data-category="injector">
+                            <span class="component-name">Impinging</span>
+                            <span class="component-cost">$80,000</span>
+                        </div>
+                        <div class="component-item" data-component="injector-premium" data-cost="150000" data-category="injector">
+                            <span class="component-name">Pintle</span>
+                            <span class="component-cost">$150,000</span>
+                        </div>
+                    </div>
+                    
+                    <div class="component-category">
+                        <div class="category-name">Nozzle</div>
+                        <div class="component-item" data-component="nozzle-basic" data-cost="40000" data-category="nozzle">
+                            <span class="component-name">Conical</span>
+                            <span class="component-cost">$40,000</span>
+                        </div>
+                        <div class="component-item" data-component="nozzle-advanced" data-cost="100000" data-category="nozzle">
+                            <span class="component-name">Bell (80%)</span>
+                            <span class="component-cost">$100,000</span>
+                        </div>
+                        <div class="component-item" data-component="nozzle-premium" data-cost="180000" data-category="nozzle">
+                            <span class="component-name">Optimal Bell</span>
+                            <span class="component-cost">$180,000</span>
+                        </div>
+                    </div>
+                    
+                    <div class="component-category">
+                        <div class="category-name">Turbopump</div>
+                        <div class="component-item" data-component="pump-basic" data-cost="80000" data-category="pump">
+                            <span class="component-name">Pressure-Fed</span>
+                            <span class="component-cost">$80,000</span>
+                        </div>
+                        <div class="component-item" data-component="pump-advanced" data-cost="200000" data-category="pump">
+                            <span class="component-name">Gas Generator</span>
+                            <span class="component-cost">$200,000</span>
+                        </div>
+                        <div class="component-item" data-component="pump-premium" data-cost="350000" data-category="pump">
+                            <span class="component-name">Staged Comb.</span>
+                            <span class="component-cost">$350,000</span>
+                        </div>
+                    </div>
+                    
+                    <div class="component-category">
+                        <div class="category-name">Propellant</div>
+                        <div class="component-item" data-component="prop-small" data-cost="50000" data-category="propellant">
+                            <span class="component-name">1,500 kg</span>
+                            <span class="component-cost">$50,000</span>
+                        </div>
+                        <div class="component-item" data-component="prop-medium" data-cost="100000" data-category="propellant">
+                            <span class="component-name">3,000 kg</span>
+                            <span class="component-cost">$100,000</span>
+                        </div>
+                        <div class="component-item" data-component="prop-large" data-cost="180000" data-category="propellant">
+                            <span class="component-name">5,000 kg</span>
+                            <span class="component-cost">$180,000</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="engine-preview">
+                    <div class="engine-diagram">🚀</div>
+                    <div class="engine-preview-text">Select components to build your engine</div>
+                </div>
+                
+                <div class="inspector-panel">
+                    <div class="inspector-title">Design Summary</div>
+                    
+                    <div class="inspector-section">
+                        <div class="inspector-label">ESTIMATED PERFORMANCE</div>
+                        <div class="goal-item">
+                            <span>Thrust</span>
+                            <span class="inspector-value" id="est-thrust">-- kN</span>
+                        </div>
+                        <div class="goal-item">
+                            <span>Isp</span>
+                            <span class="inspector-value" id="est-isp">-- s</span>
+                        </div>
+                        <div class="goal-item">
+                            <span>Pressure</span>
+                            <span class="inspector-value" id="est-pressure">-- MPa</span>
+                        </div>
+                    </div>
+                    
+                    <div class="selected-components">
+                        <div class="inspector-label">SELECTED COMPONENTS</div>
+                        <div id="selected-list">
+                            <div style="color: #8ab4d8; font-size: 13px; font-style: italic;">
+                                No components selected
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="inspector-section" style="margin-top: 20px;">
+                        <div class="goal-item">
+                            <span>Total Cost</span>
+                            <span class="inspector-value" id="total-cost" style="color: #4ade80;">$0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="design-controls">
+                        <button class="menu-btn" id="reset-design-btn" style="padding: 12px 25px; font-size: 14px;">Reset</button>
+                        <button class="menu-btn primary" id="test-fire-btn" style="padding: 12px 25px; font-size: 14px;" disabled>🔥 Test Fire</button>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <!-- Control Panel -->
-        <div class="control-panel">
-            <button class="btn btn-fire" id="fire-btn">🚀 Start Test</button>
-            <button class="btn btn-abort" id="abort-btn" disabled>Abort Test</button>
+        <!-- ========== SCREEN 7: HELP OVERLAY ========== -->
+        <div id="help-overlay" class="screen">
+            <button class="close-btn" id="close-help-btn">×</button>
+            <div class="help-content">
+                <div class="help-title">🧑‍🔬 Engineer's Notes</div>
+                
+                <div class="help-section">
+                    <h3>🔥 Combustion Chamber</h3>
+                    <p>Where the magic happens! Fuel and oxidizer mix and burn here, creating hot expanding gases. 
+                    Better materials handle higher temperatures and pressures, improving performance but costing more.</p>
+                </div>
+                
+                <div class="help-section">
+                    <h3>💉 Fuel Injector</h3>
+                    <p>Controls how propellants enter the chamber. Better mixing = more efficient combustion. 
+                    Shower heads are simple, impinging jets mix better, and pintle injectors offer throttling.</p>
+                </div>
+                
+                <div class="help-section">
+                    <h3>🔔 Nozzle</h3>
+                    <p>Converts thermal energy into thrust by accelerating exhaust gases. The expansion ratio 
+                    determines efficiency at different altitudes. Bell nozzles are more efficient than simple cones.</p>
+                </div>
+                
+                <div class="help-section">
+                    <h3>⚙️ Turbopump</h3>
+                    <p>Pressurizes propellants before injection. Pressure-fed systems are simple but heavy. 
+                    Gas generators are efficient. Staged combustion is complex but maximizes performance.</p>
+                </div>
+                
+                <div class="help-section">
+                    <h3>⛽ Propellant</h3>
+                    <p>More propellant = longer burns, but costs money. Plan your test duration carefully. 
+                    You can always buy more for the next iteration!</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ========== SCREEN 9: RESULTS/CONTRACTS ========== -->
+        <div id="results-screen" class="screen">
+            <div class="results-header">
+                <div class="results-title" id="results-title">Test Complete</div>
+                <div class="results-subtitle" id="results-subtitle">Review your performance and secure contracts</div>
+            </div>
+            
+            <div class="results-content">
+                <div class="results-left">
+                    <div class="performance-summary">
+                        <div class="performance-title">📊 Test Performance</div>
+                        <div class="perf-row">
+                            <span class="perf-label">Peak Thrust</span>
+                            <span>
+                                <span class="perf-value" id="result-thrust">0 kN</span>
+                                <span class="perf-goal">(goal: 100 kN)</span>
+                            </span>
+                        </div>
+                        <div class="perf-row">
+                            <span class="perf-label">Specific Impulse</span>
+                            <span>
+                                <span class="perf-value" id="result-isp">0 s</span>
+                                <span class="perf-goal">(goal: 280 s)</span>
+                            </span>
+                        </div>
+                        <div class="perf-row">
+                            <span class="perf-label">Chamber Pressure</span>
+                            <span>
+                                <span class="perf-value" id="result-pressure">0 MPa</span>
+                                <span class="perf-goal">(goal: 20-30 MPa)</span>
+                            </span>
+                        </div>
+                        <div class="perf-row">
+                            <span class="perf-label">Test Duration</span>
+                            <span>
+                                <span class="perf-value" id="result-duration">0 s</span>
+                                <span class="perf-goal">(goal: 5+ s)</span>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="results-budget">
+                        <div class="budget-current-label">CURRENT BUDGET</div>
+                        <div class="budget-current" id="results-current-budget">$0</div>
+                        <div class="budget-addition" id="results-budget-addition"></div>
+                    </div>
+                </div>
+                
+                <div class="results-right">
+                    <div class="contracts-section">
+                        <div class="contracts-title">📜 Available Contracts <span id="contracts-progress-header"></span></div>
+                        <div class="contracts-subtitle">Select contracts to fund your next iteration (performance determines availability)</div>
+                        <div class="contracts-grid" id="contracts-grid">
+                            <!-- Contracts populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="results-controls">
+                <button class="menu-btn" id="skip-contracts-btn">Skip Contracts</button>
+                <button class="menu-btn primary" id="accept-contracts-btn">Accept & Continue</button>
+            </div>
+        </div>
+        
+        <!-- ========== SCREEN 10: FAILURE ========== -->
+        <div id="failure-screen" class="screen">
+            <div class="failure-header">
+                <div class="failure-title">❌ MISSION FAILED</div>
+                <div class="failure-subtitle">Critical failure during test firing</div>
+            </div>
+            
+            <div class="failure-content">
+                <div class="failure-left" id="failure-alerts">
+                    <!-- Alerts populated by JS -->
+                </div>
+                
+                <div class="failure-center">
+                    <div class="failure-engine">
+                        <div class="failure-engine-icon">🚀</div>
+                        <div class="failure-explosion">💥</div>
+                        <div class="failure-x-mark">✕</div>
+                    </div>
+                    
+                    <!-- Engineering suggestions -->
+                    <div class="failure-suggestions" id="failure-suggestions">
+                        <!-- Suggestions populated by JS -->
+                    </div>
+                </div>
+                
+                <div class="failure-right">
+                    <div class="failure-consequences">
+                        <div class="consequences-title">⚠️ Consequences</div>
+                        <div class="consequence-row">
+                            <div class="consequence-label">
+                                <span class="consequence-icon">🔥</span>
+                                <span>Peak Thrust</span>
+                            </div>
+                            <div>
+                                <div class="consequence-value" id="failure-thrust">0 kN</div>
+                                <div class="consequence-detail">Before failure</div>
+                            </div>
+                        </div>
+                        <div class="consequence-row">
+                            <div class="consequence-label">
+                                <span class="consequence-icon">⚡</span>
+                                <span>Test Duration</span>
+                            </div>
+                            <div>
+                                <div class="consequence-value" id="failure-duration">0 s</div>
+                                <div class="consequence-detail">Terminated early</div>
+                            </div>
+                        </div>
+                        <div class="consequence-row">
+                            <div class="consequence-label">
+                                <span class="consequence-icon">📊</span>
+                                <span>Test Result</span>
+                            </div>
+                            <div>
+                                <div class="consequence-value">VOID</div>
+                                <div class="consequence-detail">No data recorded</div>
+                            </div>
+                        </div>
+                        <div class="consequence-row">
+                            <div class="consequence-label">
+                                <span class="consequence-icon">📜</span>
+                                <span>Contracts</span>
+                            </div>
+                            <div>
+                                <div class="consequence-value">NONE</div>
+                                <div class="consequence-detail">Cannot award</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="failure-budget">
+                        <div class="failure-budget-label">REMAINING BUDGET</div>
+                        <div class="failure-budget-amount" id="failure-budget">$0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="failure-controls">
+                <button class="btn-failure" id="failure-back-btn">Back to Design</button>
+            </div>
+        </div>
+        
+        <!-- ========== SCREEN 8: TEST FIRE ========== -->
+        <div id="test-fire-screen" class="screen">
+            <div class="header">
+                <h1>TEST FIRING...</h1>
+                <div class="countdown" id="countdown">Ready</div>
+            </div>
+            
+            <div class="status-indicator" id="status">STANDBY</div>
+            
+            <div class="mode-selector">
+                <div class="mode-selector-group">
+                    <label>Engine Model</label>
+                    <select id="engine-model">
+                        <option value="generic" selected>Generic Engine</option>
+                        <option value="merlin">SpaceX Merlin 1D</option>
+                        <option value="raptor">SpaceX Raptor 3</option>
+                        <option value="rs25">RS-25 (SSME)</option>
+                        <option value="f1">Rocketdyne F-1</option>
+                    </select>
+                    <div class="mode-description" id="engine-desc">
+                        Simple engine for learning fundamentals
+                    </div>
+                </div>
+                
+                <div class="mode-selector-group">
+                    <label>Exhaust Visualization</label>
+                    <select id="exhaust-mode">
+                        <option value="stylized">Stylized (Arcade)</option>
+                        <option value="rp1-lox" selected>RP-1/LOX Realistic</option>
+                        <option value="lh2-lox">LH2/LOX (Near-invisible)</option>
+                        <option value="methane-lox">Methane/LOX (Raptor)</option>
+                        <option value="shock-diamonds">Shock Diamonds</option>
+                    </select>
+                    <div class="mode-description" id="exhaust-desc">
+                        Kerosene fuel - orange flame with soot particles
+                    </div>
+                </div>
+            </div>
+            
+            <div id="canvas-container">
+                <canvas id="engine-canvas"></canvas>
+                <div class="rotation-hint">🖱️ Drag to rotate • Scroll to zoom</div>
+            </div>
+            
+            <div class="left-panel">
+                <div class="graph-container">
+                    <div class="graph-title">Thrust</div>
+                    <canvas class="graph-canvas" id="thrust-graph" width="256" height="80"></canvas>
+                </div>
+                <div class="graph-container">
+                    <div class="graph-title">Chamber Pressure</div>
+                    <canvas class="graph-canvas" id="pressure-graph" width="256" height="80"></canvas>
+                </div>
+                <div class="graph-container">
+                    <div class="graph-title">Temperature</div>
+                    <canvas class="graph-canvas" id="temp-graph" width="256" height="80"></canvas>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="stats-container">
+                    <div class="stats-title">Goals</div>
+                    <div class="stat-row">
+                        <span class="stat-label">Thrust:</span>
+                        <span class="stat-value" id="goal-thrust">102 kN<span class="check-mark" id="thrust-check" style="display:none">✓</span></span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Isp:</span>
+                        <span class="stat-value" id="goal-isp">290 s</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Pressure:</span>
+                        <span class="stat-value" id="goal-pressure">25 MPa</span>
+                    </div>
+                </div>
+                
+                <div class="stats-container">
+                    <div class="stats-title">Current Test Readings</div>
+                    <div class="stat-row">
+                        <span class="stat-label">🔥 Thrust:</span>
+                        <span class="stat-value warning" id="current-thrust">0 kN</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">⚡ Isp:</span>
+                        <span class="stat-value warning" id="current-isp">0 s</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">💨 Pressure:</span>
+                        <span class="stat-value warning" id="current-pressure">0 MPa</span>
+                    </div>
+                </div>
+                
+                <div class="stats-container">
+                    <div class="stats-title">Propellant Tanks</div>
+                    <div class="tanks-container">
+                        <div class="tank">
+                            <div class="tank-label">RP-1 (Fuel)</div>
+                            <div class="tank-visual">
+                                <div class="tank-fill fuel-fill" id="fuel-fill"></div>
+                                <div class="tank-level" id="fuel-level">100%</div>
+                            </div>
+                            <div class="tank-amount" id="fuel-amount">850 kg</div>
+                        </div>
+                        <div class="tank">
+                            <div class="tank-label">LOX (Oxidizer)</div>
+                            <div class="tank-visual">
+                                <div class="tank-fill oxidizer-fill" id="oxidizer-fill"></div>
+                                <div class="tank-level" id="oxidizer-level">100%</div>
+                            </div>
+                            <div class="tank-amount" id="oxidizer-amount">2125 kg</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-panel">
+                <button class="btn btn-fire" id="fire-btn">🚀 Start Test</button>
+                <button class="btn btn-abort" id="abort-btn" disabled>Abort Test</button>
+            </div>
         </div>
     </div>
+    
+    <!-- Game Logic -->
+    <script src="game-state.js"></script>
+    <script src="ui-controller.js"></script>
     
     <!-- Three.js ES Module -->
     <script type="importmap">
