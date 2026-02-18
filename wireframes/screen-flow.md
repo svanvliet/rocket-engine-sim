@@ -1,35 +1,34 @@
-```mermaid
-flowchart TD
-    Splash --> MainMenu
+<pre><code class="language-mermaid">flowchart TD
+    Splash --&gt; MainMenu
 
-    MainMenu -->|New Game| Difficulty
-    Difficulty --> WorldIntro
-    WorldIntro --> WorldMap
+    MainMenu --&gt;|New Game| Difficulty
+    Difficulty --&gt; WorldIntro
+    WorldIntro --&gt; WorldMap
 
-    MainMenu -->|Continue| WorldMap
-    MainMenu -->|Level Select| WorldMap
-    MainMenu -->|Settings| Settings
+    MainMenu --&gt;|Continue| WorldMap
+    MainMenu --&gt;|Level Select| WorldMap
+    MainMenu --&gt;|Settings| Settings
 
-    WorldMap --> LevelBrief
-    LevelBrief --> Design
+    WorldMap --&gt; LevelBrief
+    LevelBrief --&gt; Design
 
-    Design -->|Help| HelpOverlay
-    HelpOverlay --> Design
+    Design --&gt;|Help| HelpOverlay
+    HelpOverlay --&gt; Design
 
-    Design -->|Test Fire| Simulation
+    Design --&gt;|Test Fire| Simulation
 
-    Simulation -->|Success| Results
-    Simulation -->|Failure| Failure
+    Simulation --&gt;|Success| Results
+    Simulation --&gt;|Failure| Failure
 
-    Failure -->|Back to Design| Design
+    Failure --&gt;|Back to Design| Design
 
-    Results -->|Iterate| Design
-    Results -->|Proceed| LevelComplete
+    Results --&gt;|Iterate| Design
+    Results --&gt;|Proceed| LevelComplete
 
-    LevelComplete --> WorldMap
+    LevelComplete --&gt; WorldMap
 
-    WorldMap -->|Sandbox Unlocked| Sandbox
-    Sandbox --> Design
+    WorldMap --&gt;|Sandbox Unlocked| Sandbox
+    Sandbox --&gt; Design
 
-    Settings --> MainMenu
-```
+    Settings --&gt; MainMenu
+</code></pre><p></p>
