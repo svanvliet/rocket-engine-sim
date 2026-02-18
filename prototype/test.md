@@ -1,1 +1,1 @@
-<h1>Yes! This worked magically.</h1><p>This is a test file created in Notebook.md!</p>
+<h1>Yes! This worked magically.</h1><p>This is a test file created in Notebook.md!</p><p>Will these changes be staged and work?</p><p></p><h2>Let’s stage more changes</h2><p>And now add some more.</p><p></p>
