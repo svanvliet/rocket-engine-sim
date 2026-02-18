@@ -10,7 +10,7 @@ And now add some more.
 
 ### Now I’m writing the for Markdown format testing
 
-Each of these saves should come back as Markdown format, not HTML.
+Each of these saves should come back as Markdown format, not [HTML](https://html).
 
 | Column A | Column B | Column C |
 | --- | --- | --- |
