@@ -4,6 +4,8 @@ This is a test file created in Notebook.md!
 
 Will these changes be staged and work?
 
+Making changes after the fact.
+
 ## Let’s stage more changes
 
 And now add some more.
