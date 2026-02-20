@@ -4,7 +4,7 @@ This is a test file created in Notebook.md!
 
 Will these changes be staged and work?
 
-Making changes after the fact.
+Making changes after the fact. I'm making changes here that should be queued and persisted.
 
 ## Let’s stage more changes
 
