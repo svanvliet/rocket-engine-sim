@@ -23,3 +23,10 @@ I’m adding some more stuff to show Zoe.
 
 > [!NOTE]
 > This is a change I'm making to test the squash-merge PR updates.
+
+I'm making some more changes, including adding a table below.
+
+| Type | Save | Ye |
+| --- | --- | --- |
+| Static | Yes | Kanye |
+|  |  |  |
