@@ -20,3 +20,6 @@ Each of these saves should come back as Markdown format, not [HTML](https://html
 | Row 2A | Row 2B | Row 2C |
 
 I’m adding some more stuff to show Zoe.
+
+> [!NOTE]
+> This is a change I'm making to test the squash-merge PR updates.
